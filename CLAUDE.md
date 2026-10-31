@@ -32,7 +32,9 @@ Docs and code comments are English; the UI is English and German (below).
   one at a time. Here only: `GarminLink` per uid (sealed with Fernet - key
   `MGC_SECRET_KEY`, else `secret.key` in the data dir, 0600; lose it =
   connect again) and the texts. The password is stored nowhere. Mock points
-  `garmin_link._signin()` and `_renew(oauth1)`.
+  `garmin_link._signin()` and `_renew(oauth1)`. Proven live (2026-10-31, a
+  test instance in mode local): sign-in with MFA, tokens sealed in the
+  table, courses and devices read with them, a forced renewal.
 - **Security (review 2026-10-31, tests in test_app/test_accounts/test_sources)**:
   JSON in `<script type="application/json">` only through `web.script_json`
   (escapes `<>&` - a route name once ended the block, stored XSS);
@@ -287,9 +289,9 @@ Docs and code comments are English; the UI is English and German (below).
   (Michael 2026-10-27): `GarminPrefs.devices` per uid + username, only
   `courseCapable`, always fetched with the signed-in user's token. The send
   page loads the list while none is known (without a result at most every
-  10 min again), My Garmin renews it. Proven live: device list and FIT per
-  device (Edge 850, fenix 8 Pro); the POST of the message had not run live
-  yet at v0.9.1.
+  10 min again), My Garmin renews it. Proven live: device list, FIT per
+  device (Edge 850, fenix 8 Pro) and the whole "send to device" - the route
+  arrived on the Edge (2026-10-31).
 - No `pgrep -f`/`pkill -f` in the same Bash call as `git commit`/`push`: the
   protection hook reads the `-f` as a force push and blocks the whole command.
 - Mock point `garmin_courses._client(token)` (the block's client), in tests
