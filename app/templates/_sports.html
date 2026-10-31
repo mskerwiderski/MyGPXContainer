@@ -1,0 +1,24 @@
+{# sport badges and the sport picker (grouped checkboxes) #}
+{% macro badges(keys) %}{% for k in keys if k in sport_by_key %}<span class="badge">{{ _(sport_by_key[k].label) }}</span> {% endfor %}{% endmacro %}
+
+{# the tags the computer works out: shape and profile #}
+{% macro tags(r) %}<span class="badge tag">{{ _("Loop") if r.loop else _("Point to point") }}</span>
+{%- set pf = profile(r.distance_m, r.ascent_m, r.sports) %}{% if pf %} <span class="badge tag tag-{{ pf }}">{{ _(profiles[pf]) }}</span>{% endif %}{% endmacro %}
+
+{# the route's shape, drawn small (gpx.sketch) #}
+{% macro sketch_svg(r) %}{% set sk = sketch(r.gpx_sha) %}<svg class="sketch" viewBox="0 0 100 100" aria-hidden="true"><path d="{{ sk.d }}"/><circle cx="{{ sk.x }}" cy="{{ sk.y }}" r="5"/></svg>{% endmacro %}
+
+{% macro picker(selected) %}
+<fieldset class="sport-picker">
+  <legend>{{ _("Suitable for") }}</legend>
+  {% for gkey, glabel in groups.items() %}
+  <div class="sport-group">
+    <div class="sport-group-name">{{ _(glabel) }}</div>
+    {% for s in sports if s.group == gkey %}
+    <label class="checkbox"><input type="checkbox" name="sports" value="{{ s.key }}"
+      {{ 'checked' if s.key in selected }}> {{ _(s.label) }}</label>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</fieldset>
+{% endmacro %}

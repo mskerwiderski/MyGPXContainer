@@ -1,0 +1,14 @@
+.env
+data/
+*.db
+.git/
+.github/
+.claude/
+.venv/
+tests/
+docs/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.DS_Store

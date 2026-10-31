@@ -1,0 +1,18 @@
+{# a page outside the shell: sign-in, first setup, invitation #}
+{% from "_logo.html" import logo %}
+{% macro auth_page(title) -%}
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+{% include "_head.html" %}
+<title>{{ title }} · MyGPXContainer</title>
+</head>
+<body>
+<main class="auth-page card">
+  <div class="brand">{{ logo() }}MyGPXContainer</div>
+  <h1>{{ title }}</h1>
+  {{ caller() }}
+</main>
+</body>
+</html>
+{%- endmacro %}

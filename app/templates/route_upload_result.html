@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Add route") }} · {% endblock %}
+{% block content %}
+<h1>{{ _("Upload result") }}</h1>
+{% if too_many %}<p class="flash flash-error">{{ _("Only the first {n} files were read.", n=max_files) }}</p>{% endif %}
+<div class="tablewrap"><table>
+  <thead><tr><th>{{ _("File") }}</th><th>{{ _("Result") }}</th></tr></thead>
+  <tbody>
+  {% for filename, route, dup, err in results %}
+  <tr>
+    <td>{{ filename }}</td>
+    <td>{% if route %}<span class="badge ok">{{ _("Added") }}</span> <a href="/routes/{{ route.id }}">{{ route.name }}</a>
+        {% elif dup %}<span class="badge warn">{{ _("Already there") }}</span> <a href="/routes/{{ dup.id }}">{{ dup.name }}</a>
+        {% else %}<span class="badge danger">{{ _("Not added") }}</span> {{ _(err) }}{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<p class="actions"><a class="btn" href="/">{{ _("To the routes") }}</a>
+  <a class="btn-ghost" href="/routes/new">{{ _("Add more") }}</a></p>
+{% endblock %}

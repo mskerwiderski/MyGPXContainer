@@ -1,0 +1,58 @@
+# GraphHopper for MyGPXContainer's loop suggestions (app/suggest.py).
+# run.py sets datareader.file and graph.location per build on the command
+# line (-Ddw.graphhopper.…). Flexible mode only: round_trip and a custom model
+# per request need it, and every request covers a small area.
+graphhopper:
+  datareader.file: ""
+  graph.location: /data/graphs/none
+  custom_models.directory: /app/models
+  profiles:
+    - name: bike
+      custom_model_files: [bike.json, bike_elevation.json]
+    - name: racingbike
+      custom_model_files: [racingbike.json, bike_elevation.json]
+    - name: mtb
+      custom_model_files: [mtb.json, bike_elevation.json]
+    - name: gravel
+      custom_model_files: [gravel.json, bike_elevation.json]
+    - name: foot
+      custom_model_files: [foot.json, foot_elevation.json]
+    - name: hike
+      custom_model_files: [hike.json, foot_elevation.json]
+  profiles_ch: []
+  profiles_lm: []
+  graph.encoded_values: bike_priority, bike_access, roundabout, bike_average_speed, bike_road_access, foot_road_access, average_slope, max_slope, mtb_rating, hike_rating, country, road_class, racingbike_priority, racingbike_access, racingbike_average_speed, mtb_priority, mtb_access, mtb_average_speed, foot_access, foot_priority, foot_average_speed, foot_network, surface, track_type
+  # CGIAR (SRTM, up to 60° north) and GMTED beyond
+  graph.elevation.provider: multi
+  graph.elevation.cache_dir: /data/elevation
+  graph.elevation.interpolate: bilinear
+  graph.elevation.edge_smoothing: moving_average
+  graph.elevation.edge_smoothing.moving_average.window_size: 150
+  # nothing on foot or by bike there
+  import.osm.ignored_highways: motorway,trunk
+  prepare.min_network_size: 200
+  prepare.subnetworks.threads: 4
+  routing.snap_preventions_default: tunnel, bridge, ferry
+  routing.non_ch.max_waypoint_distance: 1000000
+  routing.timeout_ms: 30000
+  graph.dataaccess.default_type: RAM_STORE
+server:
+  application_connectors:
+  - type: http
+    port: 8989
+    bind_host: 0.0.0.0
+    max_request_header_size: 50k
+  request_log:
+      appenders: []
+  admin_connectors:
+  - type: http
+    port: 8990
+    bind_host: 127.0.0.1
+logging:
+  level: INFO
+  loggers:
+    "com.graphhopper.osm_warnings": "OFF"
+  appenders:
+    - type: console
+      time_zone: UTC
+      log_format: "%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{30} - %msg%n"

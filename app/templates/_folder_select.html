@@ -1,0 +1,7 @@
+{% macro folder_select(selected, label=True, id="folder") %}
+{% if label %}<label for="{{ id }}">{{ _("Folder") }}</label>{% endif %}
+<select id="{{ id }}" name="folder" {% if not label %}aria-label="{{ _('Folder') }}"{% endif %}>
+  <option value="">{{ _(default_folder) }}</option>
+  {% for fo in folders %}<option value="{{ fo.id }}" {{ 'selected' if selected|string == fo.id|string }}>{{ fo.name }}</option>{% endfor %}
+</select>
+{% endmacro %}

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "_sports.html" import badges, tags with context %}
+{% from "_garmin_state.html" import garmin_state, garmin_devices with context %}
+{% block title %}{{ route.name }} · {% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ asset('vendor/leaflet.css') }}">
+<link rel="stylesheet" href="{{ asset('vendor/uPlot.min.css') }}">
+{% endblock %}
+{% block content %}
+<a class="back" href="/" data-back="/">‹ {{ _("Routes") }}</a>
+<div class="tablehead">
+  <h1>{{ route.name }}</h1>
+  <div class="actions">
+    <a class="btn-ghost" href="/routes/{{ route.id }}/gpx">{{ _("Download GPX") }}</a>
+    {% if garmin_user and sharing %}<a class="btn-ghost" href="/routes/share?ids={{ route.id }}&amp;back={{ ('/routes/' ~ route.id)|urlencode }}">{{ _("Share…") }}</a>{% endif %}
+    <a class="btn" href="/routes/{{ route.id }}/edit">{{ _("Edit") }}</a>
+  </div>
+</div>
+<p class="route-sports">{{ badges(route.sports) }}{{ tags(route) }}
+  <a class="route-folder" href="/?folder={{ folder.id if folder else 0 }}">▸ {{ folder.name if folder else _(default_folder) }}</a></p>
+
+<div class="stats">
+  <div class="stat"><span class="stat-label">{{ _("Distance") }}</span><span class="stat-value">{{ num(route.distance_m / 1000, 1) }} km</span></div>
+  <div class="stat"><span class="stat-label">{{ _("Ascent") }}</span><span class="stat-value">{% if route.ascent_m is not none %}{{ num(route.ascent_m) }} m{% else %}–{% endif %}</span></div>
+  <div class="stat"><span class="stat-label">{{ _("Descent") }}</span><span class="stat-value">{% if route.descent_m is not none %}{{ num(route.descent_m) }} m{% else %}–{% endif %}</span></div>
+  <div class="stat"><span class="stat-label">{{ _("Elevation") }}</span><span class="stat-value">{% if route.min_ele is not none %}{{ num(route.min_ele) }}–{{ num(route.max_ele) }} m{% else %}–{% endif %}</span></div>
+  <div class="stat"><span class="stat-label">{{ _("Shape") }}</span><span class="stat-value">{{ _("Loop") if route.loop else _("Point to point") }}</span></div>
+</div>
+
+<div id="map" class="route-map card"
+     data-bases='{{ {"map": _("Map"), "satellite": _("Satellite"), "terrain": _("Terrain"), "dark": _("Dark")}|tojson }}'></div>
+<div id="profile" class="route-profile card" data-label-km="km" data-label-m="m"></div>
+
+<div class="card garmin-card" id="garmin-card" data-refresh="garmin-card"
+     {% if garmin_run and garmin_run.running %}data-sync-running{% endif %}>
+  <h2>Garmin</h2>
+  {% if not garmin_user %}
+  <p class="muted">{{ _("Sign in to send routes to your Garmin account.") }}</p>
+  {% else %}
+  {% if garmin_row %}
+  <p>{{ garmin_state(garmin_st, garmin_row) }}
+    {% if garmin_run.running %}<span class="muted small">· {{ _("Garmin Connect at work…") }}</span>{% endif %}</p>
+  <p class="small">{{ _("As {sport}", sport=_(sport_by_key[garmin_row.activity_type].label)) if garmin_row.activity_type in sport_by_key else garmin_row.activity_type }}
+    · <a href="{{ course_url(garmin_row.course_id) }}" target="_blank" rel="noopener">{{ _("Open in Garmin Connect") }}</a>
+    {% if on_devices %}<br>{{ _("Devices") }}: {{ garmin_devices(on_devices) }}{% endif %}</p>
+  {% else %}
+  <p class="muted">{{ _("Becomes a private course in your Garmin Connect account - and on your devices, if you like.") }}</p>
+  {% endif %}
+  <div class="actions">
+    <a class="btn{{ '-ghost' if garmin_row and garmin_st == 'current' }}" href="/garmin/send?ids={{ route.id }}&amp;back={{ ('/routes/' ~ route.id)|urlencode }}">{{ _("Send to Garmin…") }}</a>
+    {% if garmin_row %}
+    <form method="post" action="/garmin/remove" data-swap="garmin-card">
+      <input type="hidden" name="ids" value="{{ garmin_row.id }}">
+      <input type="hidden" name="back" value="/routes/{{ route.id }}">
+      <button type="submit" class="btn-ghost">{{ _("Remove from Garmin Connect") }}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% if route.description %}
+<div class="card">
+  <h2>{{ _("Description") }}</h2>
+  <p class="route-description">{{ route.description }}</p>
+</div>
+{% endif %}
+{% if route.source_url %}
+<p class="small">{{ _("Source") }}: <a href="{{ route.source_url }}" rel="noopener noreferrer" target="_blank">{{ {"komoot": "Komoot", "garmin": "Garmin Connect"}.get(route.source) or route.source_url.split("/")[2] }}</a></p>
+{% endif %}
+<p class="muted small">{% if route.shared_from %}{{ _("Shared by {name} on {date}", name=route.shared_by_name or "–", date=date(route.shared_at or route.created_at)) }}{% else %}{{ _("Added on {date}", date=date(route.created_at)) }}{% endif %}
+  {%- if route.updated_at > route.created_at %} · {{ _("changed on {date}", date=date(route.updated_at)) }}{% endif %}</p>
+
+<script type="application/json" id="track">{{ track_json|safe }}</script>
+<script src="{{ asset('vendor/leaflet.js') }}"></script>
+<script src="{{ asset('vendor/uPlot.iife.min.js') }}"></script>
+<script src="{{ asset('map_base.js') }}"></script>
+<script src="{{ asset('route_map.js') }}"></script>
+{% endblock %}

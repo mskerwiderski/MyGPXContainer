@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Share") }} · {% endblock %}
+{% block content %}
+<a class="back" href="{{ back }}" data-back="{{ back_path }}">‹ {{ _("Back") }}</a>
+<div id="share-panel">
+<h1>{{ _("Share") }}</h1>
+<p class="muted">{{ _("Whoever you pick gets a copy of their own: they can change or delete it, and later changes on either side stay there.") }}</p>
+<ul class="share-routes">
+  {% for r in chosen %}<li><a href="/routes/{{ r.id }}">{{ r.name }}</a> <span class="muted small">{{ num(r.distance_m / 1000, 1) }} km</span></li>{% endfor %}
+</ul>
+{% if result %}<p class="flash">{% for name, shared, had in result %}
+  {{ _("{name}: {n} shared", name=name, n=shared) }}{% if had %} · {{ _("{n} already there", n=had) }}{% endif %}{% if not loop.last %}<br>{% endif %}
+{% endfor %}</p>{% endif %}
+{% if problem %}<p class="flash flash-error">{{ _(problem) }}</p>{% endif %}
+{% if people %}
+<form class="card form-narrow" method="post" action="/routes/share" data-swap="share-panel">
+  {% for r in chosen %}<input type="hidden" name="ids" value="{{ r.id }}">{% endfor %}
+  <input type="hidden" name="back" value="{{ back }}">
+  <fieldset class="share-people">
+    <legend>{{ _("With") }}</legend>
+    {% for m in people %}<label class="checkbox"><input type="checkbox" name="to" value="{{ m.uid }}"{{ ' checked' if m.uid in picked }}> {{ m.display_name }}</label>{% endfor %}
+  </fieldset>
+  <div class="actions"><button type="submit">{{ _("Share") }}</button>
+    <a class="btn-ghost" href="{{ back }}">{{ _("Done") if result else _("Cancel") }}</a></div>
+</form>
+{% elif not problem %}<p class="card">{{ _("Nobody else uses MyGPXContainer yet.") }}</p>{% endif %}
+</div>
+{% endblock %}

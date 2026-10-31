@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_garmin_state.html" import garmin_state, garmin_devices, garmin_result, device_hint with context %}
+{% block title %}{{ _("My Garmin") }} · {% endblock %}
+{% block content %}
+<div id="garmin-panel" data-refresh="garmin-panel" data-refresh-url="/garmin?fresh=1"
+     {% if run.running %}data-sync-running{% endif %} {% if checking %}data-check-url="/garmin?fresh=1"{% endif %}>
+<h1>{{ _("My Garmin") }}</h1>
+<p class="muted">{{ _("What MyGPXContainer put into your Garmin Connect account, and the devices it went to. Your other courses there stay untouched.") }}</p>
+{% if run.running %}<p class="card flash checking" role="status">{{ _("Garmin Connect at work…") }}</p>{% else %}{{ garmin_result(run) }}{% endif %}
+{% if checking %}<p class="card flash checking" role="status" data-checking>{{ _("Checking Garmin Connect…") }}</p>{% endif %}
+{% if problem %}<p class="card flash flash-error">{{ _(problem) }}</p>{% endif %}
+
+{% if items %}
+<form method="post" action="/garmin/remove" data-swap="garmin-panel">
+<div class="tablewrap"><table class="garmin-table">
+  <thead><tr>
+    <th class="pick"><label class="sr-only" for="pick-all">{{ _("All") }}</label><input type="checkbox" id="pick-all" data-all="ids"></th>
+    <th>{{ _("Route") }}</th><th>{{ _("Sport in Garmin") }}</th><th>{{ _("Garmin Connect") }}</th><th>{{ _("Devices") }}</th>
+  </tr></thead>
+  <tbody>
+  {% for row, route in items %}
+  <tr>
+    <td class="pick"><input type="checkbox" name="ids" value="{{ row.id }}" aria-label="{{ row.name or (route.name if route else '') }}"></td>
+    <td class="g-route">{% if route %}<a href="/routes/{{ route.id }}">{{ route.name }}</a>{% else %}{{ row.name or _("Deleted route") }}{% endif %}</td>
+    <td class="g-sport">{{ _(sport_by_key[row.activity_type].label) if row.activity_type in sport_by_key else row.activity_type }}</td>
+    <td>{{ garmin_state(state(row, route), row) }}
+      <a class="small" href="{{ course_url(row.course_id) }}" target="_blank" rel="noopener">{{ _("Open") }}&nbsp;↗</a>
+      {% if route and state(row, route) == "changed" %}<a class="small" href="/garmin/send?ids={{ route.id }}&amp;back=/garmin">{{ _("Send again") }}</a>{% endif %}</td>
+    <td class="small g-devices" data-label="{{ _('Devices') }}">{{ garmin_devices(on_devices(row)) or "–" }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<div class="actions">
+  <button type="submit" class="btn-ghost" data-needs-selection
+          data-confirm="{{ _('Remove {n} courses from Garmin Connect?') }}">{{ _("Remove selected") }}</button>
+  <button type="submit" name="all" value="1" class="danger"
+          data-confirm="{{ _('Remove all {n} courses from Garmin Connect?', n=items|length) }}">{{ _("Remove all") }}</button>
+</div>
+</form>
+{{ device_hint() }}
+{% else %}
+<div class="card empty">
+  <p><strong>{{ _("Nothing in Garmin Connect yet") }}</strong></p>
+  <p>{{ _("Open a route, or select several in the list, and choose “Send to Garmin…”.") }}</p>
+  <p><a class="btn" href="/">{{ _("To the routes") }}</a></p>
+</div>
+{% endif %}
+</div>
+<script src="{{ asset('garmin.js') }}"></script>
+{% endblock %}

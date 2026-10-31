@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Folders") }} · {% endblock %}
+{% block content %}
+<a class="back" href="/" data-back="/">‹ {{ _("Routes") }}</a>
+<div id="folders-panel">
+<h1>{{ _("Folders") }}</h1>
+<p class="muted">{{ _("Every route is in exactly one folder. Your folders are your own: nobody else sees them. A route without a folder of its own is in “{name}”.", name=_(default_folder)) }}</p>
+{% if problem %}<p class="flash flash-error">{{ _(problem) }}</p>{% endif %}
+
+<form class="card form-narrow folder-new" method="post" action="/folders" data-swap="folders-panel">
+  <label for="new-folder">{{ _("New folder") }}</label>
+  <div class="row"><input id="new-folder" name="name" maxlength="80" required placeholder="{{ _('e.g. Fuerteventura') }}">
+    <button type="submit">{{ _("Create") }}</button></div>
+</form>
+
+<div class="tablewrap"><table class="folder-table">
+  <thead><tr><th>{{ _("Folder") }}</th><th class="num">{{ _("Routes") }}</th><th></th></tr></thead>
+  <tbody>
+  <tr><td><a href="/?folder=0">{{ _(default_folder) }}</a> <span class="muted small">({{ _("default") }})</span></td>
+      <td class="num">{{ counts.get(None, 0) }}</td><td></td></tr>
+  {% for fo in items %}
+  <tr>
+    <td><form method="post" action="/folders/{{ fo.id }}/rename" class="row folder-rename" data-swap="folders-panel">
+      <input name="name" value="{{ fo.name }}" maxlength="80" required aria-label="{{ _('Name') }}">
+      <button type="submit" class="btn-ghost btn-sm">{{ _("Rename") }}</button></form></td>
+    <td class="num"><a href="/?folder={{ fo.id }}">{{ counts.get(fo.id, 0) }}</a></td>
+    <td><form method="post" action="/folders/{{ fo.id }}/delete" data-swap="folders-panel"
+              data-confirm="{{ _('Delete the folder “{name}”? Its routes move to “{default}”.', name=fo.name, default=_(default_folder)) }}">
+      <button type="submit" class="btn-ghost btn-sm">{{ _("Delete") }}</button></form></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+</div>
+{% endblock %}

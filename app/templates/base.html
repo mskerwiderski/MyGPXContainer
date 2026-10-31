@@ -1,0 +1,63 @@
+{% from "_logo.html" import logo %}
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+{% include "_head.html" %}
+<title>{% block title %}{% endblock %}MyGPXContainer</title>
+{% block head %}{% endblock %}
+</head>
+<body>
+{% set p = request.url.path %}
+{% if account and account.impersonated_by %}
+<div class="imp-banner" role="status">
+  <span>{{ _("You are signed in as {name} on behalf of {admin}.", name=account.name, admin=account.impersonated_by) }}</span>
+  <a class="btn btn-sm" href="{{ account.stop_url }}">{{ _("Sign out as {name}", name=account.name) }}</a>
+</div>
+{% endif %}
+<header>
+  <a href="/" class="brand">{{ logo() }}MyGPXContainer</a>
+  <nav>
+    <a class="nav-link {{ 'active' if p == '/' or p.startswith('/routes') }}" href="/">{{ _("Routes") }}</a>
+    <a class="nav-link {{ 'active' if p.startswith('/garmin') }}" href="/garmin">{{ _("My Garmin") }}</a>
+    {% if admin %}<a class="nav-link {{ 'active' if p.startswith('/admin/routing') }}" href="/admin/routing">{{ _("Maps") }}</a>{% endif %}
+    {% if admin and people_admin %}<a class="nav-link {{ 'active' if p.startswith('/admin/users') }}" href="/admin/users">{{ _("People") }}</a>{% endif %}
+    {% if account %}
+    <span class="nav-user">{{ account.name }}
+      <a href="{{ account.account_url }}">{{ _("Account") }}</a>
+      <a href="{{ account.logout_url }}">{{ _("Log out") }}</a></span>
+    {% endif %}
+  </nav>
+</header>
+<main>{% block content %}{% endblock %}</main>
+
+<nav class="tabbar-bottom" aria-label="{{ _('Main navigation') }}">
+  <a class="tab {{ 'active' if p == '/' or p.startswith('/routes') }}" href="/"><svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M6 18c0-4 6-2 6-6s6-3 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="6" cy="18" r="2" fill="currentColor"/><circle cx="18" cy="6" r="2" fill="currentColor"/></svg>
+    <span>{{ _("Routes") }}</span></a>
+  <a class="tab {{ 'active' if p.startswith('/garmin') }}" href="/garmin"><svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M9 4.5h6M9 19.5h6M12 9v3l2 1.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <span>{{ _("My Garmin") }}</span></a>
+  <button type="button" class="tab" id="more-btn" aria-haspopup="true" aria-expanded="false"
+          aria-controls="more-sheet"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
+    <circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></g></svg>
+    <span>{{ _("More") }}</span></button>
+</nav>
+<div class="sheet-backdrop" id="more-backdrop" hidden></div>
+<div class="sheet" id="more-sheet" role="menu" aria-label="{{ _('More') }}" hidden>
+  <div class="sheet-grip" aria-hidden="true"></div>
+  {% if admin %}<a class="sheet-link" href="/admin/routing">{{ _("Maps for loop suggestions") }}</a>{% endif %}
+  {% if admin and people_admin %}<a class="sheet-link" href="/admin/users">{{ _("People") }}</a>{% endif %}
+  {% if account %}
+  <a class="sheet-link" href="{{ account.account_url }}">{{ _("Account") }}</a>
+  <div class="sheet-logout"><a class="btn-ghost" href="{{ account.logout_url }}">{{ _("Log out") }}</a></div>
+  {% endif %}
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<footer>MyGPXContainer v{{ version }}{% if footer_note %} · {{ footer_note }}{% endif %}</footer>
+<script src="{{ asset('ui/shell.js') }}" defer></script>
+<script src="{{ asset('app.js') }}" defer></script>
+</body>
+</html>

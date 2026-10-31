@@ -1,0 +1,42 @@
+# MyGPXContainer with Docker Compose. Settings come from .env (see
+# .env.example and the README); data stays in the volume mygpxcontainer_data.
+#
+#   docker compose up -d                    the app on port 8000 (MGC_PORT)
+#   COMPOSE_PROFILES=routing (in .env)      also the routing service for
+#                                           round-trip suggestions - needs
+#                                           RAM: see README
+services:
+  mygpxcontainer:
+    build: .
+    image: ${MGC_IMAGE:-mygpxcontainer:latest}
+    restart: unless-stopped
+    env_file:
+      - path: ./.env
+        required: false
+    ports:
+      - "${MGC_PORT:-8000}:8000"
+    volumes:
+      - mygpxcontainer_data:/data
+      # regions.json for the routing service, its status.json back
+      - mygpxcontainer_routing:/routing
+
+  # GraphHopper for the round-trip suggestions (routing/run.py): builds the map
+  # regions an admin picks on /admin/routing and serves them only to the app.
+  # The app finds it once MGC_ROUTING_URL=http://mygpxcontainer-routing:8989.
+  mygpxcontainer-routing:
+    profiles: [routing]
+    build: ./routing
+    image: ${MGC_ROUTING_IMAGE:-mygpxcontainer-routing:latest}
+    restart: unless-stopped
+    environment:
+      ROUTING_SERVE_HEAP: ${ROUTING_SERVE_HEAP:-2g}
+      ROUTING_IMPORT_HEAP: ${ROUTING_IMPORT_HEAP:-4g}
+      TZ: ${TZ:-UTC}
+    stop_grace_period: 90s
+    volumes:
+      - mygpxcontainer_routing:/data
+
+volumes:
+  mygpxcontainer_data:
+  # rebuildable (maps, graph) - no need to back it up
+  mygpxcontainer_routing:

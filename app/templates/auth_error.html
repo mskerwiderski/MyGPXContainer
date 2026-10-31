@@ -1,0 +1,16 @@
+{% from "_logo.html" import logo %}
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+{% include "_head.html" %}
+<title>{{ _(title) }} · MyGPXContainer</title>
+</head>
+<body>
+<main class="auth-page card">
+  <div class="brand">{{ logo() }}MyGPXContainer</div>
+  <h1>{{ _(title) }}</h1>
+  <p>{{ _(text) }}</p>
+  <p class="auth-links"><a href="{{ account_url }}">{{ _("Go to account") }}</a> · <a href="{{ logout_url }}">{{ _("Log out") }}</a></p>
+</main>
+</body>
+</html>

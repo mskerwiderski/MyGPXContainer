@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Maps") }} · {% endblock %}
+{% block content %}
+<a class="back" href="/" data-back="/">‹ {{ _("Routes") }}</a>
+<div id="routing-panel" {% if st.state == "building" %}data-building{% endif %}>
+<h1>{{ _("Maps for loop suggestions") }}</h1>
+<p class="muted">{{ _("Loop suggestions work where a map is on this list. A change goes into a new build of the map, which starts within a minute and takes a while (Germany: about half an hour); until then the old map keeps answering.") }}</p>
+{% if problem %}<p class="flash flash-error">{{ _(problem, **problem_values) }}</p>{% endif %}
+
+<div class="card routing-status">
+  <h2>{{ _("State") }}</h2>
+  <p>
+  {% if st.state == "serving" %}<span class="badge ok">{{ _("Ready") }}</span>
+  {% elif st.state == "building" %}<span class="badge warn">{{ _("Building") }}</span>
+  {% elif st.state == "failed" %}<span class="badge danger">{{ _("Failed") }}</span>
+  {% elif st.state == "empty" %}<span class="badge">{{ _("No map") }}</span>
+  {% else %}<span class="badge">{{ _("Routing service not reached yet") }}</span>{% endif %}
+  {% if st.names %} {{ _("Built: {regions}", regions=st.names|join(", ")) }}{% endif %}</p>
+  {% if st.built_at %}<p class="muted small">{{ _("Built on {date} in {min} min, {mb} MB", date=when(st.built_at), min=((st.build_seconds or 0) / 60)|round|int, mb=st.graph_mb or 0) }}</p>{% endif %}
+  {% if st.building %}{% set sk, sv = step(st.building.step or "") %}<p class="small">{{ _("Now: {step} ({regions}), since {date}", step=_(sk, **sv), regions=st.building.regions|join(", "), date=when(st.building.since)) }}</p>{% endif %}
+  {% if st.error %}<p class="flash flash-error small">{{ _("Last build failed: {error}", error=st.error) }}</p>{% endif %}
+  <form method="post" action="/admin/routing/rebuild" data-swap="routing-panel">
+    <button type="submit" class="btn-ghost btn-sm">{{ _("Rebuild with fresh map data") }}</button>
+  </form>
+  <p class="hint">{{ _("The map is also built afresh every month by itself.") }}</p>
+</div>
+
+<div class="tablewrap"><table class="routing-table">
+  <thead><tr><th>{{ _("Region") }}</th><th>{{ _("Added") }}</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr><td>{{ r.name }} <span class="muted small">{{ r.geofabrik_id }}</span></td>
+    <td class="muted small">{{ date(r.added_at) }}{% if r.added_by_username %} · {{ r.added_by_username }}{% endif %}</td>
+    <td><form method="post" action="/admin/routing/remove" data-swap="routing-panel"
+              data-confirm="{{ _('Remove “{name}”? Loop suggestions there stop after the next build.', name=r.name) }}">
+      <input type="hidden" name="region" value="{{ r.geofabrik_id }}">
+      <button type="submit" class="btn-ghost btn-sm">{{ _("Remove") }}</button></form></td></tr>
+  {% else %}
+  <tr><td colspan="3" class="muted">{{ _("No region yet - loop suggestions work nowhere.") }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+
+<form class="card form-narrow" method="get" action="/admin/routing" data-swap="routing-panel">
+  <label for="region-q">{{ _("Add a region") }}</label>
+  <div class="row"><input id="region-q" type="search" name="q" value="{{ q }}" placeholder="{{ _('Country or region, e.g. Austria, Canary Islands') }}">
+    <button type="submit">{{ _("Search") }}</button></div>
+  <p class="hint">{{ _("The regions are Geofabrik's extracts of OpenStreetMap.") }}</p>
+</form>
+{% if q and not hits and not problem %}<p class="muted">{{ _("No region found for “{q}”.", q=q) }}</p>{% endif %}
+{% if hits %}
+<div class="tablewrap"><table class="routing-table">
+  <tbody>
+  {% for h in hits %}
+  <tr><td>{{ h.name }} <span class="muted small">{{ h.path }}</span></td>
+    <td><form method="post" action="/admin/routing/add" data-swap="routing-panel">
+      <input type="hidden" name="region" value="{{ h.id }}">
+      <button type="submit" class="btn-sm">{{ _("Add") }}</button></form></td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endif %}
+</div>
+{% endblock %}

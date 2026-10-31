@@ -1,0 +1,25 @@
+{# a route's course in the user's Garmin Connect, the devices it went to, the outcome of the last job #}
+{% macro garmin_state(st, row) -%}
+{% if st == "current" %}<span class="badge ok">{{ _("In Garmin Connect") }}</span> <span class="muted small">{{ _("since {date}", date=date(row.synced_at)) }}</span>
+{% elif st == "changed" %}<span class="badge warn">{{ _("Changed") }}</span> <span class="muted small">{{ _("since it was sent") }}</span>
+{% elif st == "deleted" %}<span class="badge">{{ _("Route deleted") }}</span> <span class="muted small">{{ _("still in Garmin Connect") }}</span>
+{% endif %}
+{% if row.error %}<div class="small error">{{ _(row.error) }}</div>{% endif %}
+{%- endmacro %}
+
+{% macro garmin_devices(devices) -%}
+{% for name, old in devices %}{{ _("{device} (old version)", device=name) if old else name }}{% if not loop.last %}, {% endif %}{% endfor %}
+{%- endmacro %}
+
+{% macro garmin_result(run, extra="") -%}
+{% if run.error %}<p class="card flash flash-error{{ extra }}">{{ _(run.error) }}</p>
+{% elif run.result.kind == "send" %}<p class="card flash{{ extra }}">{{ _("{n} routes in Garmin Connect.", n=run.result.routes) }}
+  {% if run.result.devices %}{{ _("Also sent to {devices} - each gets them on its next sync with Garmin Connect.", devices=run.result.devices|join(", ")) }}{% endif %}</p>
+{% elif run.result.kind == "remove" %}<p class="card flash{{ extra }}">{{ _("{n} removed from Garmin Connect.", n=run.result.removed) }}</p>
+{% endif %}
+{% if run.result.failed %}<p class="card flash flash-error{{ extra }}">{% for name, text in run.result.failed %}{{ name }}: {{ _(text) }}{% if not loop.last %}<br>{% endif %}{% endfor %}</p>{% endif %}
+{%- endmacro %}
+
+{% macro device_hint() -%}
+<p class="hint">{{ _("Routes sent to a device stay there: later changes don't follow them, and only you can remove them, on the device itself.") }}</p>
+{%- endmacro %}

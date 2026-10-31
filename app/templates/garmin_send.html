@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "_garmin_state.html" import garmin_result, device_hint with context %}
+{% block title %}{{ _("Send to Garmin") }} · {% endblock %}
+{% block content %}
+<a class="back" href="{{ back }}" data-back="{{ back_path }}">‹ {{ _("Back") }}</a>
+<div id="send-panel" data-refresh="send-panel" data-refresh-url="{{ again }}"
+     {% if sent and run.running %}data-sync-running{% endif %}>
+<h1>{{ _("Send to Garmin") }}</h1>
+{% if sent %}
+  {% if run.running %}<p class="card flash form-narrow checking" role="status">{{ _("Sending to Garmin Connect…") }}</p>
+  {% else %}{{ garmin_result(run, " form-narrow") }}{% endif %}
+{% endif %}
+<form class="card form-narrow stack" method="post" action="/garmin/send" data-swap="send-panel">
+  <input type="hidden" name="back" value="{{ back }}">
+  <p class="muted">{{ _("Each route becomes a private course in your Garmin Connect account, as the sport you pick here. A route already there is replaced if it has changed since.") }}</p>
+  <fieldset class="send-routes">
+    <legend>{{ _("Routes") }}</legend>
+    {% for r, choices, picked, row in items %}
+    <div class="send-route">
+      <input type="hidden" name="ids" value="{{ r.id }}">
+      <span><a href="/routes/{{ r.id }}">{{ r.name }}</a> <span class="muted small">{{ num(r.distance_m / 1000, 1) }} km{% if row %} · {{ _("in Garmin Connect") }}{% endif %}</span></span>
+      {% if choices|length > 1 %}
+      <label class="sr-only" for="sport_{{ r.id }}">{{ _("Sport in Garmin") }}</label>
+      <select id="sport_{{ r.id }}" name="sport_{{ r.id }}">
+        {% for k in choices %}<option value="{{ k }}"{{ ' selected' if k == picked }}>{{ _(sport_by_key[k].label) }}</option>{% endfor %}
+      </select>
+      {% else %}<input type="hidden" name="sport_{{ r.id }}" value="{{ picked }}"><span class="small">{{ _(sport_by_key[picked].label) }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </fieldset>
+  <fieldset class="send-devices">
+    <legend>{{ _("Also on these devices") }}</legend>
+    {% if devices %}
+      {% if devices|length > 1 %}<label class="checkbox"><input type="checkbox" name="all_devices" value="1" data-all="device"> {{ _("All devices") }}</label>{% endif %}
+      {% for d in devices %}<label class="checkbox"><input type="checkbox" name="device" value="{{ d.id }}"> {{ d.name }}</label>{% endfor %}
+    {% else %}
+      <p class="muted small">{{ _("No device that can take courses. Devices show up here once your Garmin Connect account has one.") }}</p>
+    {% endif %}
+  </fieldset>
+  {% if devices %}{{ device_hint() }}{% endif %}
+  <div class="actions"><button type="submit">{{ _("Send") }}</button>
+    <a class="btn-ghost" href="{{ back }}">{{ _("Done") if sent else _("Cancel") }}</a></div>
+</form>
+</div>
+<script src="{{ asset('garmin.js') }}"></script>
+{% endblock %}

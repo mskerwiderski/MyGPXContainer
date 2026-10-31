@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_sports.html" import picker with context %}
+{% from "_folder_select.html" import folder_select with context %}
+{% block title %}{{ _("Add route") }} · {% endblock %}
+{% block content %}
+<a class="back" href="/" data-back="/">‹ {{ _("Routes") }}</a>
+<h1>{{ _("Add route") }}</h1>
+<p class="muted">{{ _("No route at hand?") }} <a href="/suggest">{{ _("Suggest a route") }}</a></p>
+
+<form class="card form-narrow" method="post" action="/routes/link" id="link-form" data-swap="link-form">
+  <h2>{{ _("From a share link") }}</h2>
+  {% if link_problem %}<p class="flash flash-error">{{ _(link_problem, **link_values) }}
+    {% if link_values.route_id %}<a href="/routes/{{ link_values.route_id }}">{{ _("Open it") }}</a>{% endif %}</p>{% endif %}
+  <label for="url">{{ _("Link") }}</label>
+  <input id="url" name="url" type="url" required value="{{ link_url or '' }}"
+         placeholder="https://www.komoot.com/tour/…">
+  <p class="hint">{{ _("A Komoot tour (the link from its “Share” button), a Garmin Connect course - yours or a public one - or any link to a GPX file.") }}</p>
+  {{ folder_select(folder_pre, id="link-folder") }}
+  {{ picker([]) }}
+  <p class="hint">{{ _("Tick nothing to take the sport from Komoot or Garmin.") }}</p>
+  <label for="link-description">{{ _("Description") }}</label>
+  <textarea id="link-description" name="description" rows="3" placeholder="{{ _('Optional') }}"></textarea>
+  <div class="actions"><button type="submit">{{ _("Add") }}</button>
+    <a class="btn-ghost" href="/">{{ _("Cancel") }}</a></div>
+</form>
+
+<form class="card form-narrow" method="post" action="/routes" enctype="multipart/form-data">
+  <h2>{{ _("Upload GPX files") }}</h2>
+  <label for="files">{{ _("GPX files") }}</label>
+  <input id="files" type="file" name="files" accept=".gpx,application/gpx+xml" multiple required>
+  <p class="hint">{{ _("One route per file, up to {n} files and 10 MB each. Name and description come from the file; you can change them afterwards.", n=max_files) }}</p>
+  {{ folder_select(folder_pre, id="upload-folder") }}
+  {{ picker([]) }}
+  <label for="description">{{ _("Description") }}</label>
+  <textarea id="description" name="description" rows="3"
+    placeholder="{{ _('Optional - applies to every file') }}"></textarea>
+  <div class="actions"><button type="submit">{{ _("Upload") }}</button>
+    <a class="btn-ghost" href="/">{{ _("Cancel") }}</a></div>
+</form>
+{% endblock %}

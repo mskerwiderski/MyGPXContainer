@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_sports.html" import picker with context %}
+{% from "_folder_select.html" import folder_select with context %}
+{% block title %}{{ route.name }} · {% endblock %}
+{% block content %}
+<a class="back" href="/routes/{{ route.id }}" data-back="/routes/{{ route.id }}">‹ {{ route.name }}</a>
+<h1>{{ _("Edit route") }}</h1>
+{% if problem %}<p class="flash flash-error">{{ _(problem, name=duplicate.name) if duplicate else _(problem) }}</p>{% endif %}
+<form class="card form-narrow" method="post" action="/routes/{{ route.id }}/edit" enctype="multipart/form-data">
+  <label for="name">{{ _("Name") }}</label>
+  <input id="name" name="name" value="{{ route.name }}" maxlength="200" required>
+  {{ folder_select(route.folder_id or "") }}
+  {{ picker(route.sports) }}
+  <label for="description">{{ _("Description") }}</label>
+  <textarea id="description" name="description" rows="6">{{ route.description }}</textarea>
+  <label for="file">{{ _("Replace GPX file") }}</label>
+  <input id="file" type="file" name="file" accept=".gpx,application/gpx+xml">
+  <p class="hint">{{ _("Optional. Distance, elevation and map are taken from the new file.") }}</p>
+  <div class="actions"><button type="submit">{{ _("Save") }}</button>
+    <a class="btn-ghost" href="/routes/{{ route.id }}">{{ _("Cancel") }}</a></div>
+</form>
+<form class="card form-narrow danger-zone" method="post" action="/routes/{{ route.id }}/delete"
+      data-confirm="{{ _('Delete the route “{name}”? This cannot be undone.', name=route.name) }}">
+  <h2>{{ _("Delete route") }}</h2>
+  <p class="hint">{{ _("A course in Garmin Connect stays there - remove it under “My Garmin”. Copies you shared stay with whoever got them.") }}</p>
+  <button type="submit" class="danger">{{ _("Delete route") }}</button>
+</form>
+{% endblock %}

@@ -1,0 +1,42 @@
+[project]
+name = "mygpxcontainer"
+version = "1.0.0"
+description = "Shared GPX route collection with Garmin Connect course sync"
+requires-python = ">=3.12"
+dependencies = [
+    # Upper bounds: the image is rebuilt on every deploy, an unpinned major
+    # bump must not silently break the app (see portfolio conventions).
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.30,<1",
+    "jinja2>=3.1,<4",
+    "httpx>=0.27,<1",   # MyAuth: session check
+    "sqlmodel>=0.0.21,<0.1",
+    "python-multipart>=0.0.9,<0.1",   # uploads
+    "defusedxml>=0.7,<0.8",   # GPX: no entity expansion, no external entities
+    "cryptography>=43,<47",   # Garmin tokens of own accounts, encrypted (Fernet)
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8,<9",
+    "ruff>=0.6,<1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+# copies of shared building blocks: checked where they come from
+extend-exclude = ["app/access", "app/garmin_api", "app/garmin_login"]
+
+[tool.ruff.lint]
+# explicit, so the result does not depend on the ruff version's defaults
+select = ["E4", "E7", "E9", "F", "I", "B"]
+ignore = ["B905"]           # zip() of pairs and points: lengths match by construction
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Form", "fastapi.File", "fastapi.Query", "fastapi.Depends"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]

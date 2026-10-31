@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ _(title) }} · {% endblock %}
+{% block content %}
+<div class="card form-narrow">
+  <h1>{{ _(title) }}</h1>
+  {% if text %}<p>{{ _(text) }}</p>{% endif %}
+  <p><a class="btn" href="/">{{ _("To the routes") }}</a></p>
+</div>
+{% endblock %}

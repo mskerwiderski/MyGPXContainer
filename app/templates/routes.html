@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% from "_sports.html" import badges, tags, sketch_svg with context %}
+{% from "_folder_select.html" import folder_select with context %}
+{% block title %}{{ _("Routes") }} · {% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('vendor/leaflet.css') }}">{% endblock %}
+{% block content %}
+<div class="tablehead">
+  <h1>{{ _("Routes") }}</h1>
+  <div class="actions">
+    <a class="btn-ghost" href="/suggest">{{ _("Suggest a route") }}</a>
+    <a class="btn" href="/routes/new{{ '?folder=' ~ f.folder if f.folder and f.folder != '0' }}">{{ _("Add route") }}</a>
+  </div>
+</div>
+
+<form id="filters" class="filters-form" method="get" action="/" data-swap="results,filter-count,folder-bar" data-auto>
+  <div class="filter-row">
+    <input type="search" name="q" value="{{ f.q }}" placeholder="{{ _('Search name and description') }}"
+           aria-label="{{ _('Search') }}" class="f-q">
+    <button type="button" class="btn-ghost f-toggle" data-toggle="filter-panel"
+            aria-expanded="{{ 'true' if f.active() > (1 if f.q else 0) else 'false' }}" aria-controls="filter-panel">
+      {{ _("Filter") }} <span class="nav-count soft" id="filter-count" {{ 'hidden' if not f.active() }}>{{ f.active() }}</span></button>
+    <div class="seg" role="group" aria-label="{{ _('View') }}">
+      <button type="button" class="seg-btn {{ 'active' if f.view == 'list' }}" data-view-switch="list" aria-pressed="{{ 'true' if f.view == 'list' else 'false' }}">{{ _("List") }}</button>
+      <button type="button" class="seg-btn {{ 'active' if f.view == 'map' }}" data-view-switch="map" aria-pressed="{{ 'true' if f.view == 'map' else 'false' }}">{{ _("Map") }}</button>
+    </div>
+  </div>
+  <div class="card filters" id="filter-panel" {{ 'data-start-closed' if f.active() <= (1 if f.q else 0) }}>
+    <label>{{ _("Sport") }}
+      <select name="sport">
+        <option value="">{{ _("All sports") }}</option>
+        {% for gkey, glabel in groups.items() %}
+        <optgroup label="{{ _(glabel) }}">
+          <option value="g:{{ gkey }}" {{ 'selected' if f.sport == 'g:' ~ gkey }}>{{ _("All of {group}", group=_(glabel)) }}</option>
+          {% for s in sports if s.group == gkey %}<option value="{{ s.key }}" {{ 'selected' if f.sport == s.key }}>{{ _(s.label) }}</option>{% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select></label>
+    <label>{{ _("Distance (km)") }}
+      <span class="range"><input type="number" name="dmin" min="0" step="any" inputmode="decimal" value="{{ f.dmin if f.dmin is not none }}" placeholder="{{ _('from') }}">
+      <input type="number" name="dmax" min="0" step="any" inputmode="decimal" value="{{ f.dmax if f.dmax is not none }}" placeholder="{{ _('to') }}"></span></label>
+    <label>{{ _("Ascent (m)") }}
+      <span class="range"><input type="number" name="amin" min="0" step="any" inputmode="numeric" value="{{ f.amin|int if f.amin is not none }}" placeholder="{{ _('from') }}">
+      <input type="number" name="amax" min="0" step="any" inputmode="numeric" value="{{ f.amax|int if f.amax is not none }}" placeholder="{{ _('to') }}"></span></label>
+    <label>{{ _("Shape") }}
+      <select name="shape">
+        <option value="">{{ _("Any") }}</option>
+        <option value="loop" {{ 'selected' if f.shape == 'loop' }}>{{ _("Loop") }}</option>
+        <option value="oneway" {{ 'selected' if f.shape == 'oneway' }}>{{ _("Point to point") }}</option>
+      </select></label>
+    <label>{{ _("Profile") }}
+      <select name="profile">
+        <option value="">{{ _("Any") }}</option>
+        {% for k, label in profiles.items() %}<option value="{{ k }}" {{ 'selected' if f.profile == k }}>{{ _(label) }}</option>{% endfor %}
+      </select></label>
+    {% if senders %}<label>{{ _("From") }}
+      <select name="by">
+        <option value="">{{ _("Anyone") }}</option>
+        <option value="me" {{ 'selected' if f.by == 'me' }}>{{ _("Me") }}</option>
+        {% for uname, sname in senders %}<option value="{{ uname }}" {{ 'selected' if f.by == uname }}>{{ _("Shared by {name}", name=sname) }}</option>{% endfor %}
+      </select></label>{% endif %}
+    <label>{{ _("Sort") }}
+      <select name="sort" data-default="new">
+        <option value="new" {{ 'selected' if f.sort == 'new' }}>{{ _("Newest first") }}</option>
+        <option value="near" {{ 'selected' if f.sort == 'near' }}>{{ _("Nearest first") }}</option>
+        <option value="name" {{ 'selected' if f.sort == 'name' }}>{{ _("Name") }}</option>
+        <option value="distance" {{ 'selected' if f.sort == 'distance' }}>{{ _("Shortest first") }}</option>
+        <option value="ascent" {{ 'selected' if f.sort == 'ascent' }}>{{ _("Flattest first") }}</option>
+      </select></label>
+    <label class="f-near">{{ _("Near") }}
+      <span class="range">
+        <input type="search" name="place" value="{{ f.place }}" placeholder="{{ _('Place, e.g. Starnberg') }}">
+        <select name="radius" aria-label="{{ _('Radius') }}" data-default="25">
+          {% for r in radii %}<option value="{{ r }}" {{ 'selected' if f.radius == r }}>{{ r }} km</option>{% endfor %}
+        </select>
+        <button type="button" class="btn-ghost btn-sm" data-near-me title="{{ _('Near my location') }}"
+                data-denied="{{ _('Your location is not available.') }}">◎</button>
+      </span>
+      <input type="hidden" name="lat" value="{{ f.lat if f.lat is not none }}">
+      <input type="hidden" name="lon" value="{{ f.lon if f.lon is not none }}"></label>
+    {% if me %}<label class="checkbox"><input type="checkbox" name="garmin" value="1" {{ 'checked' if f.garmin }}> {{ _("Only in Garmin Connect") }}</label>{% endif %}
+    <input type="hidden" name="view" value="{{ f.view }}" data-default="list">
+    <input type="hidden" name="folder" value="{{ f.folder }}">
+    <noscript><button type="submit">{{ _("Apply") }}</button></noscript>
+  </div>
+</form>
+
+<nav class="folder-bar" id="folder-bar" aria-label="{{ _('Folders') }}">
+  <button type="button" class="chip {{ 'active' if f.folder == '' }}" data-folder="">{{ _("All") }} <span>{{ total }}</span></button>
+  <button type="button" class="chip {{ 'active' if f.folder == '0' }}" data-folder="0">{{ _(default_folder) }} <span>{{ folder_counts.get(None, 0) }}</span></button>
+  {% for fo in folders %}<button type="button" class="chip {{ 'active' if f.folder == fo.id|string }}" data-folder="{{ fo.id }}">{{ fo.name }} <span>{{ folder_counts.get(fo.id, 0) }}</span></button>{% endfor %}
+  <a class="chip chip-manage" href="/folders" title="{{ _('Manage folders') }}">{{ _("Folders") }} …</a>
+</nav>
+
+<div id="results" data-view="{{ f.view }}" {% if bulk.done %}data-bulk-done{% endif %}>
+  <div class="results-head">
+    <p class="muted">
+      {% if f.active() or f.folder %}{{ _("{n} of {total} routes", n=found|length, total=total) }}{% else %}{{ _("{n} routes", n=total) }}{% endif %}
+      {% if place_label %} · {{ _("within {r} km of {place}", r=f.radius, place=place_label) }}{% elif f.lat is not none %} · {{ _("within {r} km of your location", r=f.radius) }}{% endif %}
+      {% if place_missing %} · <span class="error">{{ _("Place “{place}” not found", place=f.place) }}</span>{% endif %}
+      {% if f.active() %} · <a href="/?view={{ f.view }}" data-reset>{{ _("Reset") }}</a>{% endif %}
+    </p>
+    {% if f.view == "list" and found %}<button type="button" class="btn-ghost btn-sm" data-select-toggle>{{ _("Select") }}</button>{% endif %}
+  </div>
+
+  {% if bulk.done %}<p class="flash bulk-msg">
+    {% if bulk.done == "move" %}{{ _("{n} routes moved.", n=bulk.n) }}
+    {% elif bulk.done == "delete" %}{{ _("{n} routes deleted.", n=bulk.n) }}
+      {% if me %}{{ _("Courses in Garmin Connect stay there - remove them under “My Garmin”.") }}{% endif %}
+    {% endif %}</p>{% endif %}
+
+  {% if f.view == "map" %}
+  <div id="overview-map" class="overview-map card"
+       data-bases='{{ {"map": _("Map"), "satellite": _("Satellite"), "terrain": _("Terrain"), "dark": _("Dark")}|tojson }}'
+       data-center='{{ center|tojson if center else "null" }}' data-radius="{{ f.radius }}"></div>
+  <script type="application/json" id="starts">{{ starts_json|safe }}</script>
+  {% elif found %}
+  <div class="tablewrap route-table" data-deleted="{{ _('Route deleted.') }}" data-delete-failed="{{ _('The route could not be deleted.') }}">
+  <table>
+    <thead><tr>
+      <th class="r-check"></th><th class="r-sketch"></th><th>{{ _("Name") }}</th><th>{{ _("Suitable for") }}</th>
+      <th class="num">{{ _("Distance") }}</th><th class="num">{{ _("Ascent") }}</th>
+      {% if center %}<th class="num">{{ _("Away") }}</th>{% endif %}
+      {% if senders %}<th>{{ _("From") }}</th>{% endif %}<th>{{ _("Added") }}</th>
+    </tr></thead>
+    <tbody>
+    {% for r, away in found %}
+    <tr data-swipe-delete="/routes/{{ r.id }}/delete">
+      <td class="r-check"><input type="checkbox" name="ids" value="{{ r.id }}" form="bulk-form" aria-label="{{ r.name }}"></td>
+      <td class="r-sketch"><a href="/routes/{{ r.id }}" tabindex="-1">{{ sketch_svg(r) }}</a></td>
+      <td class="r-name"><a href="/routes/{{ r.id }}">{{ r.name }}</a>
+        {% if r.uid in in_garmin %}{% if garmin_state.get(r.uid) == "current" %} <span class="badge ok small" title="{{ _('In Garmin Connect') }}">G</span>{% else %} <span class="badge warn small" title="{{ _('Changed since it was sent to Garmin') }}">G</span>{% endif %}{% endif %}</td>
+      <td class="r-sports">{{ badges(r.sports) }}{{ tags(r) }}</td>
+      <td class="num r-km">{{ num(r.distance_m / 1000, 1) }} km</td>
+      <td class="num r-up">{% if r.ascent_m is not none %}↗ {{ num(r.ascent_m) }} m{% else %}–{% endif %}</td>
+      {% if center %}<td class="num r-away">{{ num(away, 1) }} km</td>{% endif %}
+      {% if senders %}<td class="r-by">{{ r.shared_by_name }}</td>{% endif %}
+      <td class="muted r-date">{{ date(r.created_at) }}
+        <button type="button" class="danger swipe-del" tabindex="-1">{{ _("Delete") }}</button></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <form id="bulk-form" class="bulk-bar" method="post" action="/routes/bulk" data-swap="results,folder-bar">
+    <input type="hidden" name="back" value="{{ query }}">
+    <div class="bulk-row">
+      <span class="bulk-count" data-count-text="{{ _('{n} selected') }}">{{ _("{n} selected", n=0) }}</span>
+      <button type="button" class="btn-ghost btn-sm" data-select-all>{{ _("All") }}</button>
+      <button type="button" class="btn-ghost btn-sm" data-select-toggle>{{ _("Cancel") }}</button>
+    </div>
+    {% if me %}
+    <div class="bulk-row bulk-garmin">
+      <button type="submit" name="action" value="garmin" class="btn-sm" data-needs-selection>{{ _("Send to Garmin…") }}</button>
+    </div>
+    {% endif %}
+    <div class="bulk-row bulk-move">{{ folder_select("", label=False, id="bulk-folder") }}
+      <button type="submit" name="action" value="move" class="btn-ghost btn-sm" data-needs-selection>{{ _("Move") }}</button></div>
+    <div class="bulk-row bulk-more">
+      {% if me and sharing %}<button type="submit" name="action" value="share" class="btn-ghost btn-sm" data-needs-selection>{{ _("Share…") }}</button>{% endif %}
+      <button type="submit" name="action" value="delete" class="danger btn-sm" data-needs-selection
+              data-confirm="{{ _('Delete {n} routes? This cannot be undone.') }}">{{ _("Delete") }}</button>
+    </div>
+  </form>
+  {% elif total %}
+  <div class="card empty"><p><strong>{{ _("No route matches") }}</strong></p>
+    <p><a class="btn-ghost" href="/?view={{ f.view }}" data-reset>{{ _("Reset") }}</a></p></div>
+  {% else %}
+  <div class="card empty">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 18c0-4 6-2 6-6s6-3 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="6" cy="18" r="2" fill="currentColor"/><circle cx="18" cy="6" r="2" fill="currentColor"/></svg>
+    <p><strong>{{ _("No routes yet") }}</strong></p>
+    <p>{{ _("Paste a share link from Komoot or Garmin Connect, or upload GPX files, to add the first route.") }}</p>
+    <p class="actions"><a class="btn" href="/routes/new">{{ _("Add route") }}</a>
+      <a class="btn-ghost" href="/suggest">{{ _("Suggest a route") }}</a></p>
+  </div>
+  {% endif %}
+</div>
+<script src="{{ asset('vendor/leaflet.js') }}"></script>
+<script src="{{ asset('map_base.js') }}"></script>
+<script src="{{ asset('routes_list.js') }}"></script>
+<script src="{{ asset('swipe.js') }}"></script>
+{% endblock %}

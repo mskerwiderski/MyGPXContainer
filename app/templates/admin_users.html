@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ _("People") }} · {% endblock %}
+{% block content %}
+<div id="people-panel">
+<h1>{{ _("People") }}</h1>
+<p class="muted">{{ _("Who uses MyGPXContainer here. Everyone sees only their own routes; routes can be shared as copies.") }}</p>
+{% if problem %}<p class="card flash flash-error">{{ _(problem) }}</p>{% endif %}
+{% if link %}<div class="card flash">
+  <p>{{ _("Send this link to {name}. It works once, for 7 days:", name=link[1]) }}</p>
+  <p><input class="invite-link" readonly value="{{ base }}{{ link[0] }}" data-select-on-focus aria-label="{{ _('Invitation link') }}"></p>
+</div>{% endif %}
+
+<form class="card form-narrow" method="post" action="/admin/users">
+  <h2>{{ _("Invite someone") }}</h2>
+  <label for="username">{{ _("User name") }}</label>
+  <input id="username" name="username" value="{{ username or '' }}" autocapitalize="none" maxlength="40" required>
+  <label for="display_name">{{ _("Name") }}</label>
+  <input id="display_name" name="display_name" value="{{ display_name or '' }}" maxlength="80">
+  <div class="actions"><button type="submit">{{ _("Create invitation link") }}</button></div>
+</form>
+
+<div class="tablewrap"><table>
+  <thead><tr><th>{{ _("User name") }}</th><th>{{ _("Name") }}</th><th>{{ _("Status") }}</th><th></th></tr></thead>
+  <tbody>
+  {% for a in people %}
+  <tr>
+    <td>{{ a.username }}{% if a.is_admin %} <span class="badge small">{{ _("Admin") }}</span>{% endif %}</td>
+    <td>{{ a.display_name }}</td>
+    <td>{% if not a.active %}<span class="badge warn">{{ _("Disabled") }}</span>
+      {% elif not a.password_hash %}<span class="badge">{{ _("Invited") }}</span>
+      {% else %}<span class="badge ok">{{ _("Active") }}</span>{% endif %}</td>
+    <td>{% if a.id != account_uid %}
+      <form method="post" action="/admin/users/{{ a.id }}" class="row-actions">
+        <button type="submit" name="action" value="reset" class="btn-ghost btn-sm">{{ _("New link") }}</button>
+        {% if a.active %}<button type="submit" name="action" value="disable" class="btn-ghost btn-sm">{{ _("Disable") }}</button>
+        {% else %}<button type="submit" name="action" value="enable" class="btn-ghost btn-sm">{{ _("Enable") }}</button>{% endif %}
+        {% if a.is_admin %}<button type="submit" name="action" value="no_admin" class="btn-ghost btn-sm">{{ _("No admin") }}</button>
+        {% else %}<button type="submit" name="action" value="admin" class="btn-ghost btn-sm">{{ _("Make admin") }}</button>{% endif %}
+      </form>{% else %}<span class="muted small">{{ _("you") }}</span>{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+</div>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Suggest a route") }} · {% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('vendor/leaflet.css') }}">{% endblock %}
+{% block content %}
+<a class="back" href="/" data-back="/">‹ {{ _("Routes") }}</a>
+<h1>{{ _("Suggest a route") }}</h1>
+
+<form id="suggest-form" class="card form-narrow stack suggest-form" method="get" action="/suggest"
+      data-swap="suggestions" autocomplete="off">
+  <div class="seg seg-radio seg-full" role="radiogroup" aria-label="{{ _('Kind') }}">
+    <label class="seg-btn"><input type="radio" name="kind" value="loop" {{ 'checked' if kind == 'loop' }}><span>{{ _("Loop") }}</span></label>
+    <label class="seg-btn"><input type="radio" name="kind" value="oneway" {{ 'checked' if kind == 'oneway' }}><span>{{ _("From A to B") }}</span></label>
+  </div>
+
+  <div class="field">
+    <label for="place">{{ _("Start") }}</label>
+    <div class="row suggest-start">
+      <button type="button" class="btn-ghost {{ 'active' if located }}" data-locate
+              data-denied="{{ _('Your location is not available.') }}">◎ {{ _("My location") }}</button>
+      <div class="ac">
+        <input id="place" type="search" name="place" value="{{ place }}" data-ac="lat,lon"
+               placeholder="{{ _('or a place or address') }}" aria-autocomplete="list">
+      </div>
+    </div>
+    <input type="hidden" name="lat" value="{{ start[0] if start }}">
+    <input type="hidden" name="lon" value="{{ start[1] if start }}">
+  </div>
+
+  <div class="field" data-kind="oneway" {{ 'hidden' if kind != 'oneway' }}>
+    <label for="to_place">{{ _("Destination") }}</label>
+    <div class="ac">
+      <input id="to_place" type="search" name="to_place" value="{{ to_place }}" data-ac="to_lat,to_lon"
+             placeholder="{{ _('A place or address') }}" aria-autocomplete="list" {{ 'disabled' if kind != 'oneway' }}>
+    </div>
+    <input type="hidden" name="to_lat" value="{{ finish[0] if finish }}" {{ 'disabled' if kind != 'oneway' }}>
+    <input type="hidden" name="to_lon" value="{{ finish[1] if finish }}" {{ 'disabled' if kind != 'oneway' }}>
+    <p class="field-hint" data-limit-hint="{{ _('Routes up to {max} km') }}">{{ _("Routes up to {max} km", max=limit(sport)) }}</p>
+  </div>
+
+  <div class="field">
+    <label for="sport">{{ _("Sport") }}</label>
+    <select id="sport" name="sport">
+      {% for gkey, glabel in groups.items() %}
+      <optgroup label="{{ _(glabel) }}">
+        {% for s in offered if s.group == gkey %}<option value="{{ s.key }}" data-group="{{ s.group }}" data-limit="{{ limit(s.key) }}" {{ 'selected' if s.key == sport }}>{{ _(s.label) }}</option>{% endfor %}
+      </optgroup>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="field" data-kind="loop" {{ 'hidden' if kind != 'loop' }}>
+    <label for="km">{{ _("Distance (km)") }}</label>
+    <div class="row suggest-km">
+      <input id="km" type="number" name="km" min="2" max="{{ limit(sport) }}" step="any" inputmode="decimal" required placeholder="km"
+             value="{{ (km|round(1)|string).replace('.0', '') if km is not none else '' }}" {{ 'disabled' if kind != 'loop' }}>
+      {% for gkey, values in chips.items() %}
+      <span class="km-chips" data-group="{{ gkey }}" {{ 'hidden' if sport_by_key[sport].group != gkey }}>
+        {% for v in values %}<button type="button" class="chip" data-km="{{ v }}">{{ v }}</button>{% endfor %}
+      </span>
+      {% endfor %}
+    </div>
+    <p class="field-hint" data-limit-hint="{{ _('Routes up to {max} km') }}">{{ _("Routes up to {max} km", max=limit(sport)) }}</p>
+  </div>
+
+  <div class="field">
+    <span class="field-label" id="profile-label">{{ _("Profile") }}</span>
+    <div class="seg seg-radio seg-full" role="radiogroup" aria-labelledby="profile-label">
+      {% for k, label in profiles.items() %}
+      <label class="seg-btn"><input type="radio" name="profile" value="{{ k }}" {{ 'checked' if k == wish }}><span>{{ _(label) }}</span></label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="actions suggest-go"><button type="submit">{{ _("Suggest") }}</button></div>
+  <p class="suggest-note">{{ _("Three routes from your start - back to it, or to a destination. Your location stays on MyGPXContainer's own server; only what you type into a place field is looked up outside (Photon, OpenStreetMap).") }}</p>
+</form>
+
+<div id="suggestions">
+  {% if problem %}<p class="flash flash-error">{{ _(problem, **problem_values) }}</p>{% endif %}
+  {% if loops %}
+  {% if not fits %}<p class="flash">{{ _("The terrain here is not “{profile}” - these come closest.", profile=_(profiles[wish])) }}</p>{% endif %}
+  <div id="suggest-map" class="suggest-map card"
+       data-bases='{{ {"map": _("Map"), "satellite": _("Satellite"), "terrain": _("Terrain"), "dark": _("Dark")}|tojson }}'></div>
+  <script type="application/json" id="suggest-lines">{{ lines_json|safe }}</script>
+  <div class="suggest-cards">
+    {% for lp in loops %}
+    {% set sk = loop_sketch(lp) %}
+    <div class="card suggest-card" data-index="{{ loop.index0 }}">
+      <div class="suggest-head">
+        <span class="loop-dot loop-{{ loop.index0 }}"></span>
+        <strong>{{ _("Suggestion {n}", n=loop.index) }}</strong>
+        <svg class="sketch loop-c{{ loop.index0 }}" viewBox="0 0 100 100" aria-hidden="true"><path d="{{ sk.d }}"/><circle cx="{{ sk.x }}" cy="{{ sk.y }}" r="5"/></svg>
+      </div>
+      <p class="suggest-stats"><span>{{ num(lp.km, 1) }} km</span>
+        <span>↗ {{ num(lp.ascent_m) }} m</span>
+        {% if lp.profile %}<span class="badge tag tag-{{ lp.profile }}">{{ _(profiles[lp.profile]) }}</span>{% endif %}</p>
+      {% set pf = elevations[loop.index0] %}
+      {% if pf %}
+      <svg class="suggest-profile loop-c{{ loop.index0 }}" viewBox="0 0 100 40" preserveAspectRatio="none"
+           role="img" aria-label="{{ _('Elevation profile') }}"><path class="area" d="{{ pf.area }}"/><path class="line" d="{{ pf.line }}"/></svg>
+      <p class="suggest-elev muted small">{{ _("Elevation {lo}–{hi} m", lo=num(pf.lo), hi=num(pf.hi)) }}</p>
+      {% endif %}
+      <p class="muted small">{{ _("{n} % unpaved", n=lp.unpaved) }}{% if lp.big_roads %} · {{ _("{n} % on main roads", n=lp.big_roads) }}{% endif %}</p>
+      <form method="post" action="/suggest/take">
+        <input type="hidden" name="kind" value="{{ kind }}">
+        <input type="hidden" name="sport" value="{{ sport }}">
+        <input type="hidden" name="profile" value="{{ wish }}">
+        <input type="hidden" name="lat" value="{{ start[0] }}">
+        <input type="hidden" name="lon" value="{{ start[1] }}">
+        <input type="hidden" name="start_label" value="{{ place }}">
+        {% if kind == "oneway" %}
+        <input type="hidden" name="to_lat" value="{{ finish[0] }}">
+        <input type="hidden" name="to_lon" value="{{ finish[1] }}">
+        <input type="hidden" name="finish_label" value="{{ to_place }}">
+        <input type="hidden" name="cand" value="{{ lp.key }}">
+        {% else %}
+        <input type="hidden" name="km" value="{{ lp.asked_km }}">
+        <input type="hidden" name="heading" value="{{ lp.heading }}">
+        {% endif %}
+        <button type="submit" class="btn-sm">{{ _("Take over") }}</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+<script src="{{ asset('vendor/leaflet.js') }}"></script>
+<script src="{{ asset('map_base.js') }}"></script>
+<script src="{{ asset('suggest.js') }}"></script>
+{% endblock %}
