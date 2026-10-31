@@ -1,6 +1,12 @@
-"""Routes: create from a GPX file, update, delete, share. Every route belongs
-to one user (Michael 2026-10-29): only they see and change it. Sharing gives
-the other user a copy of their own - later changes on either side stay there."""
+"""Routes: create from a GPX file, update, delete, share, copy, turn round.
+Every route belongs to one user (Michael 2026-10-29): only they see and change
+it. Sharing gives the other user a copy of their own - later changes on
+either side stay there.
+
+Turning a route round (v1.1.0) keeps the uploaded file byte-identical and
+only sets `Route.reversed`: whoever reads the track goes through `track_of`
+(map, profile, sketch, figures) or `gpx_bytes` (download, Garmin), never
+through the store directly."""
 
 from __future__ import annotations
 
@@ -56,6 +62,50 @@ class Duplicate(Exception):
         self.route = route
 
 
+def track_of(route: Route) -> gpx.Track:
+    """The track the way the route goes (reversed if it is turned round)."""
+    track = gpx.parse(store.get(route.gpx_sha))
+    return gpx.reverse(track) if route.reversed else track
+
+
+def gpx_bytes(route: Route) -> bytes:
+    """The GPX file the way the route goes: the uploaded file as it is, or -
+    turned round - a new one with the points reversed (without times)."""
+    data = store.get(route.gpx_sha)
+    if not route.reversed:
+        return data
+    track = gpx.reverse(gpx.parse(data))
+    return gpx.write(route.name, track.points, route.description)
+
+
+def turn_round(session: Session, route: Route) -> Route:
+    """The other way round: start and finish swap, ascent and descent too."""
+    route.reversed = not route.reversed
+    for k, v in gpx.stats(track_of(route)).items():
+        setattr(route, k, v)
+    route.updated_at = now_utc()
+    session.add(route)
+    session.commit()
+    session.refresh(route)
+    return route
+
+
+def copy(session: Session, route: Route, name: str) -> Route:
+    """A second route of the same owner from the same file (deliberately no
+    duplicate check), in the same folder, the same way round - to change one
+    without the other. Garmin courses and "shared by" stay with the original."""
+    now = now_utc()
+    twin = Route(**route.model_dump(exclude=_NOT_COPIED | {"name"}), name=name.strip()[:200],
+                 sports=list(route.sports), uid=str(uuid.uuid4()), folder_id=route.folder_id,
+                 created_at=now, updated_at=now, created_by_uid=route.created_by_uid,
+                 created_by_username=route.created_by_username,
+                 created_by_name=route.created_by_name)
+    session.add(twin)
+    session.commit()
+    session.refresh(twin)
+    return twin
+
+
 def _apply_file(route: Route, data: bytes, track: gpx.Track) -> None:
     route.gpx_sha = store.put(data)
     for k, v in gpx.stats(track).items():
@@ -107,6 +157,7 @@ def update(session: Session, route: Route, *, name: str, description: str,
             Route.gpx_sha == store_sha(data), Route.id != route.id)).first()
         if dup:
             raise Duplicate(dup)
+        route.reversed = False           # a new file goes the way it is drawn
         _apply_file(route, data, track)
     route.name = name.strip()[:200] or route.name
     route.description = description.strip()

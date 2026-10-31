@@ -98,7 +98,7 @@ async def route_list(request: Request):
                       for r in all_routes if r.shared_from}, key=lambda c: c[1].casefold())
     starts = [{"id": r.id, "name": r.name, "lat": r.start_lat, "lon": r.start_lon,
                "km": round(r.distance_m / 1000, 1), "up": r.ascent_m,
-               "line": _outline(r.gpx_sha)} for r, _ in found] if f.view == "map" else []
+               "line": _outline(r.gpx_sha, r.reversed)} for r, _ in found] if f.view == "map" else []
     q = request.query_params
     bulk = {"done": q.get("done", ""), "n": q.get("n", "0")}
     return web.render(request, "routes.html", found=found, total=len(all_routes), f=f,
@@ -274,19 +274,29 @@ async def share_routes(request: Request, ids: list[int] = Form([]), to: list[int
     return await _share_page(request, ids, back, people=people, result=result)
 
 
-@lru_cache(maxsize=2048)
-def _sketch(sha: str) -> dict:
-    return gpx.sketch(gpx.parse(store.get(sha)))
+# cached per file AND direction (a turned route draws the other way round)
+def _track(sha: str, reversed_: bool) -> gpx.Track:
+    track = gpx.parse(store.get(sha))
+    return gpx.reverse(track) if reversed_ else track
 
 
 @lru_cache(maxsize=2048)
-def _outline(sha: str) -> list:
-    return gpx.outline(gpx.parse(store.get(sha)))
+def _sketch_of(sha: str, reversed_: bool) -> dict:
+    return gpx.sketch(_track(sha, reversed_))
+
+
+def _sketch(route: Route) -> dict:
+    return _sketch_of(route.gpx_sha, route.reversed)
+
+
+@lru_cache(maxsize=2048)
+def _outline(sha: str, reversed_: bool) -> list:
+    return gpx.outline(_track(sha, reversed_))
 
 
 @lru_cache(maxsize=64)
-def _display(sha: str) -> str:
-    return web.script_json(gpx.display(gpx.parse(store.get(sha))))
+def _display(sha: str, reversed_: bool) -> str:
+    return web.script_json(gpx.display(_track(sha, reversed_)))
 
 
 @router.get("/routes/{route_id}")
@@ -301,7 +311,8 @@ async def route_detail(request: Request, route_id: int):
         prefs = garmin_sync.prefs_of(s, user) if user else None
     with get_session() as s:
         folder = folders.get_own(s, _user(request), route.folder_id) if route.folder_id else None
-    return web.render(request, "route.html", route=route, track_json=_display(route.gpx_sha),
+    return web.render(request, "route.html", route=route,
+                      track_json=_display(route.gpx_sha, route.reversed),
                       folder=folder, default_folder=folders.DEFAULT_NAME,
                       garmin_user=user, garmin_row=row,
                       garmin_st=garmin_sync.state(row, route) if row else None,
@@ -358,6 +369,29 @@ def _filename(name: str) -> str:
     return (re.sub(r"[^A-Za-z0-9]+", "_", ascii_name).strip("_") or "route") + ".gpx"
 
 
+@router.post("/routes/{route_id}/reverse")
+def route_reverse(request: Request, route_id: int):
+    """The other way round (start and finish swap); the page swaps its parts."""
+    with get_session() as s:
+        route = routes.get_own(s, _user(request), route_id)
+        if not route:
+            return _not_found(request)
+        routes.turn_round(s, route)
+    return RedirectResponse(f"/routes/{route_id}", status_code=303)
+
+
+@router.post("/routes/{route_id}/copy")
+def route_copy(request: Request, route_id: int):
+    """A second route from the same one, then its page (to rename or change it)."""
+    with get_session() as s:
+        route = routes.get_own(s, _user(request), route_id)
+        if not route:
+            return _not_found(request)
+        twin = routes.copy(s, route, gettext(web.lang(request), N_("{name} (copy)"),
+                                             name=route.name))
+    return RedirectResponse(f"/routes/{twin.id}?copied=1", status_code=303)
+
+
 @router.get("/routes/{route_id}/gpx")
 def route_download(request: Request, route_id: int):
     with get_session() as s:
@@ -365,7 +399,7 @@ def route_download(request: Request, route_id: int):
     if not route:
         return _not_found(request)
     name = _filename(route.name)
-    return Response(store.get(route.gpx_sha), media_type="application/gpx+xml",
+    return Response(routes.gpx_bytes(route), media_type="application/gpx+xml",
                     headers={"Content-Disposition":
                              f"attachment; filename=\"{name}\"; filename*=UTF-8''{quote(name)}"})
 

@@ -89,6 +89,19 @@ DE: dict[str, str] = {
     "This link does not lead to a public website.":
         "Dieser Link führt auf keine öffentliche Website.",
     "Too many redirects.": "Zu viele Weiterleitungen.",
+    # direction and copies (route.html, routes.turn_round, routes.copy)
+    "Copy": "Kopieren",
+    "Direction": "Richtung",
+    "Reverse direction": "Richtung umkehren",
+    "This is a copy - rename it or change it as you like; the original stays as it is.":
+        "Das ist eine Kopie – benenne sie um oder ändere sie, wie du magst; das Original "
+        "bleibt, wie es ist.",
+    "anticlockwise": "gegen den Uhrzeigersinn",
+    "as recorded": "wie aufgezeichnet",
+    "clockwise": "im Uhrzeigersinn",
+    "reversed": "umgekehrt",
+    "the arrows on the map show the way": "die Pfeile auf der Karte zeigen den Weg",
+    "{name} (copy)": "{name} (Kopie)",
     # Garmin: send, My Garmin (garmin_sync.py, garmin_send.html, garmin.html, route.html)
     "All devices": "Alle Geräte",
     "Also on these devices": "Zusätzlich auf diese Geräte",

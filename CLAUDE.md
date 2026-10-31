@@ -99,7 +99,22 @@ Docs and code comments are English; the UI is English and German (below).
   `store/ab/cd/<sha>.gpx`); the same file twice among ONE user's routes =
   duplicate (two users may have it, the store keeps it once). Figures
   (`gpx.stats`) are in the `Route` row; map/profile are computed by
-  `gpx.display` on request (cached per SHA).
+  `gpx.display` on request (cached per SHA and direction).
+- **Direction (v1.1.0, Michael 2026-10-31)**: every drawing of a route shows
+  which way it goes - arrows on the Leaflet maps (`mgcArrows` in
+  map_base.js, every ~110-150 px, drawn again on zoom; route page, overview,
+  suggestions) and in the list sketches (`gpx.sketch` -> `arrows`,
+  `clockwise`; macro `sketch_of`). "Reverse direction" only flips
+  `Route.reversed` and recomputes the figures - the file stays as uploaded.
+  So the track is read ONLY through `routes.track_of(route)` (drawings,
+  figures) or `routes.gpx_bytes(route)` (download, Garmin: a written GPX with
+  the points reversed, no times) - never `store.get` directly. A new file
+  resets the direction. `garmin_sync.route_hash` adds "reversed" only when
+  set (older courses keep their hash). The route page swaps its parts
+  (`data-swap`), route_map.js draws map and profile again on `mgc:swapped`.
+- **Copy (v1.1.0)**: `routes.copy` - same owner, file, folder, sports and
+  direction, name "<name> (copy)" in the user's language, deliberately no
+  duplicate check; Garmin rows and "shared by" stay with the original.
 - `gpx.parse` (defusedxml, elements by local name, GPX 1.0 + 1.1): all track
   segments in file order, otherwise the `rte`; (0,0) and invalid points are
   dropped. Ascent = sum of the elevation steps like Komoot/Garmin,

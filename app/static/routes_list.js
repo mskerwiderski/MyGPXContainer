@@ -160,6 +160,10 @@
     }
     if (bounds.isValid()) map.fitBounds(bounds, { padding: [24, 24], maxZoom: 14 });
     else map.setView([48.14, 11.58], 9);
+    // which way each route goes (after the view is set: the arrows need pixels)
+    starts.forEach(function (s, i) {
+      window.mgcArrows(map, s.line, COLORS[i % COLORS.length], 150);
+    });
   }
   draw();
   document.addEventListener("mgc:swapped", function (e) {

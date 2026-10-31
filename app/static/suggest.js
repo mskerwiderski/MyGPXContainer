@@ -164,6 +164,7 @@
         interactive: false }).addTo(map);
     });
     if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
+    data.loops.forEach(function (lp, i) { window.mgcArrows(map, lp.line, COLORS[i], 140); });
     // a card shows its route on top and thicker
     document.querySelectorAll(".suggest-card").forEach(function (card) {
       var line = lines[Number(card.dataset.index)];

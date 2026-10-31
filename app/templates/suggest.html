@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_sports.html" import sketch_of with context %}
 {% block title %}{{ _("Suggest a route") }} · {% endblock %}
 {% block head %}<link rel="stylesheet" href="{{ asset('vendor/leaflet.css') }}">{% endblock %}
 {% block content %}
@@ -89,7 +90,7 @@
       <div class="suggest-head">
         <span class="loop-dot loop-{{ loop.index0 }}"></span>
         <strong>{{ _("Suggestion {n}", n=loop.index) }}</strong>
-        <svg class="sketch loop-c{{ loop.index0 }}" viewBox="0 0 100 100" aria-hidden="true"><path d="{{ sk.d }}"/><circle cx="{{ sk.x }}" cy="{{ sk.y }}" r="5"/></svg>
+        {{ sketch_of(sk, "loop-c" ~ loop.index0) }}
       </div>
       <p class="suggest-stats"><span>{{ num(lp.km, 1) }} km</span>
         <span>↗ {{ num(lp.ascent_m) }} m</span>

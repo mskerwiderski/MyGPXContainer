@@ -55,6 +55,9 @@ def _migrate(engine: Engine) -> None:
                               ("shared_at", "DATETIME")):
                 con.exec_driver_sql(f"ALTER TABLE route ADD COLUMN {col} {kind}")
             _split_by_owner(con)
+        cols = [r[1] for r in con.exec_driver_sql("PRAGMA table_info(route)")]
+        if "reversed" not in cols:       # v1.1.0: a route can be turned round
+            con.exec_driver_sql("ALTER TABLE route ADD COLUMN reversed BOOLEAN NOT NULL DEFAULT 0")
         cols = [r[1] for r in con.exec_driver_sql("PRAGMA table_info(garmincourse)")]
         if "wanted" in cols:             # v0.17.0: sent on request, no more marks and sync
             _rows_are_courses(con, cols)

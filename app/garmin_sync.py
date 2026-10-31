@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 
 from sqlmodel import Session, select
 
-from . import routes, store
+from . import routes
 from .auth import GarminUnavailable, garmin_token
 from .db import get_session
 from .garmin_courses import Client, GarminError
@@ -53,7 +53,10 @@ def route_of(session: Session, user: dict, route_uid: str) -> Route | None:
 
 
 def route_hash(route: Route, activity_type: str) -> str:
-    raw = json.dumps([route.gpx_sha, route.name, route.description, activity_type])
+    # turned round: another course; only then in the hash, so the courses made
+    # before v1.1.0 keep their hash
+    raw = json.dumps([route.gpx_sha, route.name, route.description, activity_type]
+                     + (["reversed"] if route.reversed else []))
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
@@ -163,7 +166,7 @@ async def _course(client: Client, owned: dict, row: GarminCourse, route: Route,
     if exists:
         await _remove_own(client, owned, row)
     description = (route.description[:1000] + "\n\n" if route.description else "") + mark(route.uid)
-    row.course_id = await client.create(data=store.get(route.gpx_sha), name=route.name,
+    row.course_id = await client.create(data=routes.gpx_bytes(route), name=route.name,
                                         description=description,
                                         type_id=BY_KEY[activity_type].type_id)
     row.name, row.activity_type, row.synced_hash, row.synced_at = (

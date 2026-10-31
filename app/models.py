@@ -47,6 +47,9 @@ class Route(SQLModel, table=True):
     max_lon: float
     loop: bool = False
     point_count: int
+    # ridden the other way round than the file goes (v1.1.0): the file stays
+    # byte-identical, map, profile, figures, download and Garmin are reversed
+    reversed: bool = False
     # where it came from: upload | komoot | garmin | url
     source: str = "upload"
     source_url: str = ""

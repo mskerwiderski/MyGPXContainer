@@ -141,6 +141,12 @@
 .sketch path { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linejoin: round;
   stroke-linecap: round; }
 .sketch circle { fill: var(--ok); stroke: var(--surface); stroke-width: 2; }
+.route-direction { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .4rem .8rem; margin: 0 0 .6rem; }
+.route-direction form, .inline-form { margin: 0; display: inline; }
+.route-arrow svg { display: block; filter: drop-shadow(0 0 1px rgba(0, 0, 0, .6)); }
+.sketch path.sketch-arrow { fill: var(--accent); stroke: var(--surface); stroke-width: 2.5; }
+.suggest-head .sketch path.sketch-arrow { fill: currentColor; stroke: var(--surface); }
 .route-table th.r-sketch, .route-table td.r-sketch { width: 44px; padding-right: 0; }
 .route-table td.num, .route-table .r-by, .route-table .r-date { white-space: nowrap; }
 

@@ -19,6 +19,10 @@ or Komoot.
   tour, a Garmin Connect course (yours or a public one), any link to a GPX
   file. The file is kept byte for byte; distance, climbing and shape are
   computed from it.
+- **Direction:** arrows on every map and in the list show which way a route
+  goes; "Reverse direction" turns it round (start and finish, climbs, the
+  download and Garmin follow) - the uploaded file stays as it is. "Copy"
+  makes a second route from one, e.g. to keep both directions.
 - **Finding:** filters by sport, distance, climbing, terrain, folder and
   "near a place" or "near me", text search, a list and an overview map.
 - **Garmin:** "Send to Garmin…" puts one or several routes into your Garmin

@@ -122,6 +122,12 @@ def _climb(eles: list[float]) -> tuple[float, float]:
     return up, down
 
 
+def reverse(track: Track) -> Track:
+    """The same track the other way round (a route ridden backwards)."""
+    return Track(name=track.name, description=track.description,
+                 points=list(reversed(track.points)))
+
+
 def stats(track: Track) -> dict:
     pts = track.points
     eles = [p[2] for p in pts if p[2] is not None]
@@ -185,7 +191,10 @@ def outline(track: Track, points: int = 200) -> list[list[float]]:
 
 def sketch(track: Track, points: int = 80, size: int = 100, pad: int = 8) -> dict:
     """The route's shape for a small SVG (viewBox 0 0 size size): north up,
-    longitude scaled by cos(latitude), centred. {"d": path, "x"/"y": start}."""
+    longitude scaled by cos(latitude), centred. {"d": path, "x"/"y": start,
+    "arrows": [{x, y, a}] at a quarter, half and three quarters of the way,
+    `a` the heading in degrees (0 = east, clockwise) - which way it goes,
+    "clockwise": how a loop runs round (as seen on a north-up map)}."""
     pts = [track.points[i] for i in _thin(len(track.points), points)]
     k = math.cos(math.radians(sum(p[0] for p in pts) / len(pts)))
     xs, ys = [p[1] * k for p in pts], [-p[0] for p in pts]
@@ -195,4 +204,24 @@ def sketch(track: Track, points: int = 80, size: int = 100, pad: int = 8) -> dic
     oy = (size - h * scale) / 2 - min(ys) * scale
     xy = [(round(x * scale + ox, 1), round(y * scale + oy, 1)) for x, y in zip(xs, ys)]
     d = "M" + " L".join(f"{x} {y}" for x, y in xy)
-    return {"d": d, "x": xy[0][0], "y": xy[0][1]}
+    # shoelace with y pointing down (screen): positive = clockwise on the map
+    area = sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(xy, xy[1:] + xy[:1]))
+    return {"d": d, "x": xy[0][0], "y": xy[0][1], "arrows": _arrows(xy), "clockwise": area > 0}
+
+
+def _arrows(xy: list[tuple[float, float]], at=(0.25, 0.5, 0.75)) -> list[dict]:
+    steps = [math.dist(a, b) for a, b in zip(xy, xy[1:])]
+    total = sum(steps)
+    if total <= 0:
+        return []
+    out, run, i = [], 0.0, 0
+    for share in at:
+        goal = total * share
+        while i < len(steps) - 1 and run + steps[i] < goal:
+            run += steps[i]
+            i += 1
+        (x0, y0), (x1, y1) = xy[i], xy[i + 1]
+        t = (goal - run) / steps[i] if steps[i] else 0
+        out.append({"x": round(x0 + (x1 - x0) * t, 1), "y": round(y0 + (y1 - y0) * t, 1),
+                    "a": round(math.degrees(math.atan2(y1 - y0, x1 - x0)))})
+    return out

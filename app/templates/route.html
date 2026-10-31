@@ -12,14 +12,17 @@
   <h1>{{ route.name }}</h1>
   <div class="actions">
     <a class="btn-ghost" href="/routes/{{ route.id }}/gpx">{{ _("Download GPX") }}</a>
+    <form method="post" action="/routes/{{ route.id }}/copy" class="inline-form">
+      <button type="submit" class="btn-ghost">{{ _("Copy") }}</button></form>
     {% if garmin_user and sharing %}<a class="btn-ghost" href="/routes/share?ids={{ route.id }}&amp;back={{ ('/routes/' ~ route.id)|urlencode }}">{{ _("Share…") }}</a>{% endif %}
     <a class="btn" href="/routes/{{ route.id }}/edit">{{ _("Edit") }}</a>
   </div>
 </div>
-<p class="route-sports">{{ badges(route.sports) }}{{ tags(route) }}
+{% if request.query_params.get("copied") %}<p class="card flash">{{ _("This is a copy - rename it or change it as you like; the original stays as it is.") }} <a href="/routes/{{ route.id }}/edit">{{ _("Edit") }}</a></p>{% endif %}
+<p class="route-sports" id="route-sports">{{ badges(route.sports) }}{{ tags(route) }}
   <a class="route-folder" href="/?folder={{ folder.id if folder else 0 }}">▸ {{ folder.name if folder else _(default_folder) }}</a></p>
 
-<div class="stats">
+<div class="stats" id="route-stats">
   <div class="stat"><span class="stat-label">{{ _("Distance") }}</span><span class="stat-value">{{ num(route.distance_m / 1000, 1) }} km</span></div>
   <div class="stat"><span class="stat-label">{{ _("Ascent") }}</span><span class="stat-value">{% if route.ascent_m is not none %}{{ num(route.ascent_m) }} m{% else %}–{% endif %}</span></div>
   <div class="stat"><span class="stat-label">{{ _("Descent") }}</span><span class="stat-value">{% if route.descent_m is not none %}{{ num(route.descent_m) }} m{% else %}–{% endif %}</span></div>
@@ -27,6 +30,14 @@
   <div class="stat"><span class="stat-label">{{ _("Shape") }}</span><span class="stat-value">{{ _("Loop") if route.loop else _("Point to point") }}</span></div>
 </div>
 
+{% set sk = sketch(route) %}
+<div class="route-direction" id="route-direction">
+  <span>{{ _("Direction") }}:
+    <strong>{{ _("reversed") if route.reversed else _("as recorded") }}</strong>{% if route.loop %} · {{ _("clockwise") if sk.clockwise else _("anticlockwise") }}{% endif %}
+    <span class="muted small">· {{ _("the arrows on the map show the way") }}</span></span>
+  <form method="post" action="/routes/{{ route.id }}/reverse" data-swap="route-direction,route-sports,route-stats,track,garmin-card">
+    <button type="submit" class="btn-ghost btn-sm">⇄ {{ _("Reverse direction") }}</button></form>
+</div>
 <div id="map" class="route-map card"
      data-bases='{{ {"map": _("Map"), "satellite": _("Satellite"), "terrain": _("Terrain"), "dark": _("Dark")}|tojson }}'></div>
 <div id="profile" class="route-profile card" data-label-km="km" data-label-m="m"></div>

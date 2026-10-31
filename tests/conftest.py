@@ -25,7 +25,7 @@ def isolated_env(tmp_path, monkeypatch):
     myauth.clear_cache()
     pages._display.cache_clear()
     pages._outline.cache_clear()
-    pages._sketch.cache_clear()
+    pages._sketch_of.cache_clear()
     monkeypatch.setattr(pages, "_device_tries", {})
     from app import garmin_sync
     from app.auth import myauth as auth_myauth

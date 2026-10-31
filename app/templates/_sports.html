@@ -6,7 +6,9 @@
 {%- set pf = profile(r.distance_m, r.ascent_m, r.sports) %}{% if pf %} <span class="badge tag tag-{{ pf }}">{{ _(profiles[pf]) }}</span>{% endif %}{% endmacro %}
 
 {# the route's shape, drawn small (gpx.sketch) #}
-{% macro sketch_svg(r) %}{% set sk = sketch(r.gpx_sha) %}<svg class="sketch" viewBox="0 0 100 100" aria-hidden="true"><path d="{{ sk.d }}"/><circle cx="{{ sk.x }}" cy="{{ sk.y }}" r="5"/></svg>{% endmacro %}
+{% macro sketch_svg(r) %}{{ sketch_of(sketch(r)) }}{% endmacro %}
+{# a sketch dict (gpx.sketch) as SVG: the line, its start, arrows which way it goes #}
+{% macro sketch_of(sk, cls="") %}<svg class="sketch{{ " " ~ cls if cls }}" viewBox="0 0 100 100" aria-hidden="true"><path d="{{ sk.d }}"/>{% for a in sk.arrows %}<path class="sketch-arrow" d="M-9 -10 L11 0 L-9 10 L-4 0 Z" transform="translate({{ a.x }} {{ a.y }}) rotate({{ a.a }})"/>{% endfor %}<circle cx="{{ sk.x }}" cy="{{ sk.y }}" r="5"/></svg>{% endmacro %}
 
 {% macro picker(selected) %}
 <fieldset class="sport-picker">
