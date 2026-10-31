@@ -32,8 +32,8 @@ def isolated_env(tmp_path, monkeypatch):
     monkeypatch.setattr(garmin_sync, "_runs", {})
     monkeypatch.setattr(auth_myauth, "_members", {})
     from app.auth import garmin_link
-    monkeypatch.setattr(garmin_link, "_fernet", None)
-    monkeypatch.setattr(garmin_link, "_pending", {})
+    monkeypatch.setattr(garmin_link, "_sealer", None)
+    garmin_link._signins.clear()
     from app import geocode
 
     async def no_geocoding(params):

@@ -26,12 +26,12 @@ Docs and code comments are English; the UI is English and German (below).
   (fixtures `local_mode`, `single_mode`).
 - **Garmin for own accounts (`auth/garmin_link.py`, v0.20.0)**: the MyCommons
   block `garmin_login` (`app/garmin_login/` is a copy, `MyCommons/sync.sh
-  garmin_login app`) signs in on the account page (e-mail, password, MFA
-  code; a sign-in waiting for its code lives in `_pending` for 5 min). The
-  password is stored nowhere; OAuth1/OAuth2 in `GarminLink` per uid,
-  encrypted with Fernet - key `MGC_SECRET_KEY`, else `secret.key` in the data
-  dir (0600, made on first use; lose it = connect again). `token(uid)`
-  renews the OAuth2 token when due, one at a time per uid. Mock points
+  garmin_login app`) - `signin` speaks Garmin's protocol, `keeper` (1.1.0,
+  shared with MyAuth since v1.0.1) holds the sign-in waiting for its MFA code
+  (10 min, a twin submission counts as done), seals the tokens and renews
+  one at a time. Here only: `GarminLink` per uid (sealed with Fernet - key
+  `MGC_SECRET_KEY`, else `secret.key` in the data dir, 0600; lose it =
+  connect again) and the texts. The password is stored nowhere. Mock points
   `garmin_link._signin()` and `_renew(oauth1)`.
 - **Security (review 2026-10-31, tests in test_app/test_accounts/test_sources)**:
   JSON in `<script type="application/json">` only through `web.script_json`
