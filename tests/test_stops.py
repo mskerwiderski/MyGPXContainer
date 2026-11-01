@@ -145,6 +145,10 @@ def test_where_names_a_tapped_point(client, monkeypatch):
     monkeypatch.setattr(places, "locality", lambda lat, lon: "Alling")
     assert client.get("/suggest/where?lat=48.15&lon=11.3").json() == {
         "label": "Alling", "lat": 48.15, "lon": 11.3}
+    monkeypatch.setattr(places, "suburb", lambda lat, lon: "Altstadt")
+    monkeypatch.setattr(places, "locality", lambda lat, lon: "München")
+    assert client.get("/suggest/where?lat=48.15&lon=11.3").json()["label"] == "Altstadt, München"
+    monkeypatch.setattr(places, "suburb", lambda lat, lon: None)
     monkeypatch.setattr(places, "locality", lambda lat, lon: None)
     assert client.get("/suggest/where?lat=48.15&lon=11.3").json()["label"] == "48.15000, 11.30000"
     assert client.get("/suggest/where?lat=x").json() == {"label": ""}

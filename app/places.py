@@ -112,9 +112,10 @@ def route_head(points: list, oneway: bool, stops: list | None = None) -> str | N
 
 
 def label_at(lat: float, lon: float) -> str:
-    """A name for a point tapped on the map: its suburb or place, else the
-    coordinates."""
-    return suburb(lat, lon) or locality(lat, lon) or f"{lat:.5f}, {lon:.5f}"
+    """A name for a point tapped on the map: "Altstadt, München" (suburb and
+    place), the place alone, else the coordinates."""
+    names = list(dict.fromkeys(n for n in (suburb(lat, lon), locality(lat, lon)) if n))
+    return ", ".join(names) or f"{lat:.5f}, {lon:.5f}"
 
 
 # ---------- address search (Photon) ----------
