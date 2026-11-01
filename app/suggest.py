@@ -9,6 +9,17 @@ of the distance); scored like the loops, but on the length beyond the
 shortest instead of a wished distance. Every candidate has a key ("h30",
 "a1", "v2"), so "take over" computes that one again.
 
+Stops on the way (v1.3.0, Michael 2026-11-01), in the order given, any
+number (STOPS_MAX only against abuse): from A to B the route goes through
+them ("s"), the other candidates over a point beside the longest leg
+("w<n>"). A loop goes start -> stops -> start; GraphHopper's round trip
+takes no stops, so every leg gets a shaping point pushed outward from the
+middle of the loop - with one stop to opposite sides, so the way back is
+another one. How far out (`width`, a share of the leg) is worked out from
+the wished distance (`loop_width`); candidates vary the width and where on
+the leg the point sits. Their key ("L<pattern>:<width>") carries both, so
+"take over" computes the same loop again.
+
 Twelve candidates, one per 30° heading, are asked in parallel
 (`algorithm=round_trip`; the seed barely changes a loop, the heading does).
 Each request carries a custom model: the profile wish plus rules for the
@@ -111,7 +122,7 @@ class Loop:
     big_roads: int          # % on primary/secondary/trunk roads
     score: float = 0.0
     bearing: float = 0.0    # start -> middle of the loop
-    key: str = ""           # which candidate: "h<heading>" | "a<n>" | "v<n>"
+    key: str = ""           # which candidate: "h<heading>" | "a<n>" | "v<n>" | "s" | "w<n>" | "L…"
     asked_km: float = 0.0   # the distance asked from GraphHopper (a loop, maybe corrected)
 
     @property
@@ -268,6 +279,135 @@ def pick(loops: list[Loop], n: int = 3, apart: bool = True, shared: float = 0.4)
     return [c for c, _ in chosen]
 
 
+# ---------- stops on the way ----------
+
+STOPS_MAX = 50                # no limit for people - only against abuse
+DETOUR = 1.3                  # road km per km as the crow flies (rough, for the width)
+MIN_WIDTH, MAX_WIDTH = 0.08, 2.0
+LOOP_PATTERNS = ("m", "q")    # the shaping point mid-leg, or at a third / two thirds
+LOOP_WIDTHS = (0.75, 1.0, 1.3)
+
+
+def _xy(origin: tuple[float, float], p: tuple[float, float]) -> tuple[float, float]:
+    k = math.cos(math.radians(origin[0]))
+    return (p[1] - origin[1]) * 111_320 * k, (p[0] - origin[0]) * 111_320
+
+
+def _ll(origin: tuple[float, float], x: float, y: float) -> tuple[float, float]:
+    k = math.cos(math.radians(origin[0]))
+    return origin[0] + y / 111_320, origin[1] + x / (111_320 * k)
+
+
+def _legs(start, stops) -> list[tuple[tuple, tuple]]:
+    ring = [start, *stops, start]
+    return list(zip(ring, ring[1:]))
+
+
+def shaping_points(start, stops, width: float, pattern: str) -> list[tuple[float, float]]:
+    """One point per leg of the loop, `width` × the leg's length beside it,
+    pushed outward from the middle of the loop (with one stop: the way there
+    to one side, the way back to the other)."""
+    pts = [start, *stops]
+    cx = sum(_xy(start, p)[0] for p in pts) / len(pts)
+    cy = sum(_xy(start, p)[1] for p in pts) / len(pts)
+    out = []
+    for i, (a, b) in enumerate(_legs(start, stops)):
+        (ax, ay), (bx, by) = _xy(start, a), _xy(start, b)
+        length = math.hypot(bx - ax, by - ay) or 1.0
+        nx, ny = (by - ay) / length, -(bx - ax) / length       # right of the leg
+        at = 0.5 if pattern == "m" else (1 / 3 if i % 2 == 0 else 2 / 3)
+        mx, my = ax + (bx - ax) * at, ay + (by - ay) * at
+        side = (mx - cx) * nx + (my - cy) * ny
+        # one stop: both legs to their right - there and back are opposite sides
+        sign = (1 if side >= 0 else -1) if len(stops) > 1 else 1
+        out.append(_ll(start, mx + sign * nx * width * length, my + sign * ny * width * length))
+    return out
+
+
+def _crow_km(start, stops, width: float) -> float:
+    """The loop with its shaping points, as the crow flies, in km."""
+    total = 0.0
+    for a, b in _legs(start, stops):
+        leg = gpx.haversine(a, b)
+        total += 2 * math.hypot(leg / 2, width * leg)
+    return total / 1000
+
+
+def loop_width(start, stops, km: float) -> tuple[float, float]:
+    """(width, shortest km): the width whose loop comes to about `km`, and
+    how long the loop over the stops is at the least."""
+    shortest = _crow_km(start, stops, MIN_WIDTH) * DETOUR
+    lo, hi = MIN_WIDTH, MAX_WIDTH
+    if _crow_km(start, stops, hi) * DETOUR < km:
+        return hi, shortest
+    for _ in range(40):
+        mid = (lo + hi) / 2
+        if _crow_km(start, stops, mid) * DETOUR < km:
+            lo = mid
+        else:
+            hi = mid
+    return max(MIN_WIDTH, lo), shortest
+
+
+def stops_loop_body(sport: str, start, stops, wish: str, key: str) -> dict:
+    """The loop of the candidate `key` = "L<pattern>:<width>"."""
+    pattern, width = key[1], float(key.split(":", 1)[1])
+    shaping = shaping_points(start, stops, width, pattern)
+    points = [start]
+    for stop, shape in zip([*stops, start], shaping):
+        points += [shape, stop]
+    engine = ENGINE[sport]
+    return {"profile": engine, "points": [[p[1], p[0]] for p in points], "ch.disable": True,
+            "elevation": True, "points_encoded": False, "instructions": False,
+            "details": ["surface", "road_class"],
+            "custom_model": {"priority": WISH[wish] + RULES.get(engine, [])}}
+
+
+def stops_key_ok(key: str) -> bool:
+    try:
+        width = float(key.split(":", 1)[1])
+    except (IndexError, ValueError):
+        return False
+    return (len(key) > 2 and key[0] == "L" and key[1] in LOOP_PATTERNS
+            and MIN_WIDTH <= width <= MAX_WIDTH)
+
+
+async def stops_loop_one(sport: str, start, stops, wish: str, key: str,
+                         target: float) -> Loop | None:
+    paths = _paths(*await _route(stops_loop_body(sport, start, stops, wish, key)))
+    loop = _make(paths[0], sport, key, start) if paths else None
+    if loop:
+        loop.asked_km = target
+        loop.score = score(loop, sport, target, wish)
+    return loop
+
+
+async def _stops_round(sport, start, stops, km, wish, width) -> list[Loop]:
+    keys = [f"L{p}:{min(MAX_WIDTH, max(MIN_WIDTH, width * f)):.4f}"
+            for p in LOOP_PATTERNS for f in LOOP_WIDTHS]
+    found = await asyncio.gather(*(stops_loop_one(sport, start, stops, wish, k, km)
+                                   for k in dict.fromkeys(keys)), return_exceptions=True)
+    loops = [f for f in found if isinstance(f, Loop)]
+    if not loops:
+        _raise_first(found)
+    return loops
+
+
+async def suggest_stops(sport: str, start, stops, km: float, wish: str) -> tuple[list[Loop], float]:
+    """Up to three loops over the stops of about `km`, best first, and the
+    shortest such a loop can be (km, estimated). Off by more than
+    CORRECT_OFF: a second round with the width corrected. Raises Unavailable."""
+    width, shortest = loop_width(start, stops, km)
+    loops = await _stops_round(sport, start, stops, km, wish, width)
+    ratios = sorted(loop.km / km for loop in loops)
+    ratio = ratios[len(ratios) // 2]
+    if abs(ratio - 1) > CORRECT_OFF:
+        better, _ = loop_width(start, stops, km / ratio)
+        if abs(better - width) > 0.01:
+            loops += await _stops_round(sport, start, stops, km, wish, better)
+    return pick(loops, apart=False, shared=0.75), shortest
+
+
 # ---------- from A to B ----------
 
 VIA_SHIFTS = (-0.3, -0.15, 0.15, 0.3)     # beside the middle, share of the distance A-B
@@ -309,12 +449,44 @@ async def _oneway_group(sport: str, start, finish, wish: str, group: str) -> lis
     return [r for r in (_make(p, sport, k, start) for p, k in zip(paths, keys)) if r]
 
 
+def _longest_leg(ring: list) -> int:
+    return max(range(len(ring) - 1), key=lambda i: gpx.haversine(ring[i], ring[i + 1]))
+
+
+def stops_oneway_body(sport: str, start, finish, stops, wish: str, key: str) -> dict:
+    """Through the stops: "s" straight, "w<n>" over the n-th point beside the
+    longest leg (VIA_SHIFTS)."""
+    ring = [start, *stops, finish]
+    if key.startswith("w"):
+        i = _longest_leg(ring)
+        ring.insert(i + 1, via(ring[i], ring[i + 1], VIA_SHIFTS[int(key[1:])]))
+    engine = ENGINE[sport]
+    return {"profile": engine, "points": [[p[1], p[0]] for p in ring], "ch.disable": True,
+            "elevation": True, "points_encoded": False, "instructions": False,
+            "details": ["surface", "road_class"],
+            "custom_model": {"priority": WISH[wish] + RULES.get(engine, [])}}
+
+
+STOPS_ONEWAY_KEYS = ("s",) + tuple(f"w{i}" for i in range(len(VIA_SHIFTS)))
+
+
+async def _stops_oneway_one(sport, start, finish, stops, wish, key) -> Loop | None:
+    paths = _paths(*await _route(stops_oneway_body(sport, start, finish, stops, wish, key)))
+    return _make(paths[0], sport, key, start) if paths else None
+
+
 async def oneway(sport: str, start: tuple[float, float], finish: tuple[float, float],
-                 wish: str) -> list[Loop]:
-    """Up to three ways from A to B, best first. Raises Unavailable."""
-    groups = ["a"] + [f"v{i}" for i in range(len(VIA_SHIFTS))]
-    found = await asyncio.gather(*(_oneway_group(sport, start, finish, wish, g) for g in groups),
-                                 return_exceptions=True)
+                 wish: str, stops: list | None = None) -> list[Loop]:
+    """Up to three ways from A to B (through the stops, in their order), best
+    first. Raises Unavailable."""
+    if stops:
+        found = await asyncio.gather(*(_stops_oneway_one(sport, start, finish, stops, wish, k)
+                                       for k in STOPS_ONEWAY_KEYS), return_exceptions=True)
+        found = [[f] if isinstance(f, Loop) else f for f in found if f is not None]
+    else:
+        groups = ["a"] + [f"v{i}" for i in range(len(VIA_SHIFTS))]
+        found = await asyncio.gather(*(_oneway_group(sport, start, finish, wish, g)
+                                       for g in groups), return_exceptions=True)
     routes = [r for f in found if isinstance(f, list) for r in f]
     if not routes:
         _raise_first(found)
@@ -327,12 +499,14 @@ async def oneway(sport: str, start: tuple[float, float], finish: tuple[float, fl
     shortest = min(r.km for r in routes)
     for r in routes:
         r.score = score_oneway(r, sport, shortest, wish)
-    return pick(routes, apart=False, shared=0.6)
+    return pick(routes, apart=False, shared=0.85 if stops else 0.6)
 
 
 async def oneway_one(sport: str, start: tuple[float, float], finish: tuple[float, float],
-                     wish: str, key: str) -> Loop | None:
+                     wish: str, key: str, stops: list | None = None) -> Loop | None:
     """The candidate `key` again (for "take over")."""
+    if stops:
+        return await _stops_oneway_one(sport, start, finish, stops, wish, key)
     group = "a" if key.startswith("a") else key
     return next((r for r in await _oneway_group(sport, start, finish, wish, group)
                  if r.key == key), None)

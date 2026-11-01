@@ -90,18 +90,31 @@ def _other(lat: float, lon: float, start: str) -> str | None:
     return name if name and name != start else None
 
 
-def route_head(points: list, oneway: bool) -> str | None:
+def route_head(points: list, oneway: bool, stops: list | None = None) -> str | None:
     """"Starnberg via Percha" for a loop (via: where it gets farthest from the
-    start), "München to Schliersee" from A to B; None without a place list."""
+    start), "München to Schliersee" from A to B; with stops they are the via
+    ("Starnberg via Percha, Andechs", "München to Schliersee via Holzkirchen").
+    None without a place list."""
     start = locality(points[0][0], points[0][1])
     if not start:
         return None
+    end = _other(points[-1][0], points[-1][1], start) if oneway else None
+    if stops:
+        names = [n for n in dict.fromkeys(_other(s[0], s[1], start) for s in stops)
+                 if n and n != end]
+        head = f"{start} to {end}" if end else start
+        return f"{head} via {', '.join(names)}" if names else head
     if oneway:
-        end = _other(points[-1][0], points[-1][1], start)
         return f"{start} to {end}" if end else start
     far = max(points, key=lambda p: gpx.haversine(points[0], p))
     via = _other(far[0], far[1], start)
     return f"{start} via {via}" if via else start
+
+
+def label_at(lat: float, lon: float) -> str:
+    """A name for a point tapped on the map: its suburb or place, else the
+    coordinates."""
+    return suburb(lat, lon) or locality(lat, lon) or f"{lat:.5f}, {lon:.5f}"
 
 
 # ---------- address search (Photon) ----------

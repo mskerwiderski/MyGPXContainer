@@ -328,3 +328,34 @@ button.ways-row[aria-pressed="true"] { background: var(--accent-weak); border-co
 .ways-name { flex: 1; }
 .ways-km, .ways-share { color: var(--muted); font-variant-numeric: tabular-nums; }
 .ways-share { min-width: 3.2em; text-align: right; }
+
+/* stops on the way (/suggest, v1.3.0): numbered rows, a drag handle, folded
+   when long; the pick map; numbered pins on both maps */
+.stops { list-style: none; padding: 0; margin: .5rem 0 .2rem; display: flex; flex-direction: column;
+  gap: .35rem; }
+.stops:empty { display: none; }
+.stop { display: flex; align-items: center; gap: .4rem; border-radius: var(--r-sm);
+  background: var(--surface); }
+.stop[hidden] { display: none; }
+.stop .ac { flex: 1; min-width: 0; }
+.stop .ac input { margin: 0; }
+.stop-no { min-width: 1.3rem; text-align: center; font-weight: 650; color: var(--muted);
+  font-variant-numeric: tabular-nums; }
+button.stop-handle { flex: none; width: 2rem; height: 2.4rem; margin: 0; padding: 0;
+  background: none; border: 0; box-shadow: none; color: var(--muted); font-size: 1.1rem;
+  cursor: grab; touch-action: none; }
+button.stop-handle:focus-visible { box-shadow: var(--ring); border-radius: var(--r-xs); }
+.stop.dragging { box-shadow: var(--shadow-md); outline: 1px solid var(--accent-line);
+  position: relative; z-index: 2; }
+.stop.dragging .stop-handle { cursor: grabbing; color: var(--accent); }
+button.stop-remove { flex: none; margin: 0; font-size: 1.1rem; line-height: 1; }
+.stops-toggle { text-align: center; }
+.stops-toggle button { margin: 0; }
+.stops-add { gap: .4rem; flex-wrap: wrap; }
+.stops-add button { margin: 0; }
+.stops-add button.active { background: var(--accent-weak); border-color: var(--accent-line); }
+.stops-map { height: 18rem; margin-top: .5rem; border-radius: var(--r-sm); cursor: crosshair;
+  border: 1px solid var(--line); }
+.stop-pin span { display: flex; align-items: center; justify-content: center; width: 22px;
+  height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
+  font: 700 .72rem/1 var(--font); box-shadow: 0 0 0 2px var(--surface); }

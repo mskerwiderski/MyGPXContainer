@@ -36,7 +36,9 @@ or Komoot.
   device, and removes courses again. Nothing happens on its own.
 - **Suggestions (optional):** round trips or A-to-B routes for a sport,
   distance and profile, computed by your own GraphHopper - your positions
-  never leave your server.
+  never leave your server. Stops on the way, as many as you like: searched
+  or tapped on a map, reordered by dragging; a round trip passes them in
+  order and comes back another way.
 - **Sharing:** a copy of a route for another person on the same instance.
 
 ## Installing

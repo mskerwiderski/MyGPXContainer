@@ -197,6 +197,23 @@ Docs and code comments are English; the UI is English and German (below).
   (300 km asked: 360-370): off by > 8 % -> a second round with the distance
   corrected; the card keeps the distance actually asked (`asked_km`), which
   take-over asks again.
+- **Stops on the way (v1.3.0, Michael 2026-11-01)**: any number
+  (`STOPS_MAX` 50 only against abuse), in the order given, reordered by
+  dragging the handle (pointer events - phones do no HTML5 drag) or the
+  arrow keys on it; from 5 on the list folds to first and last. Each stop
+  is ONE hidden field `via` = "lat,lon,label" (app.js drops empty fields, so
+  three parallel lists would lose their alignment); lat/lon empty = typed,
+  not picked -> looked up like the start. "Pick on the map": a tap adds a
+  stop named by `/suggest/where` (local place list). Buttons and pick map
+  sit ABOVE the list, so the map does not move while it grows.
+  A to B: through the stops ("s") or over a point beside the longest leg
+  ("w<n>"); no GraphHopper alternatives (they take two points only).
+  Loops: start -> stops -> start, a shaping point per leg pushed outward
+  (one stop: both legs to their right = opposite sides); its width from the
+  wished km (`loop_width`, DETOUR 1.3), candidates vary width and position
+  ("L<m|q>:<width>" - take over recomputes it), a second round when off by
+  more than 8 %. Too short a wish for the stops -> a note with the least.
+  Names: "Starnberg via Percha, Andechs …" (`places.route_head(…, stops)`).
 - Each card has an elevation profile (v0.16.0, `pages._profiles`, inline
   SVG): all three on ONE scale (same km, same metres; at least 60 m range so
   flat stays flat), in the card's colour like its line and sketch

@@ -1,5 +1,15 @@
 {% extends "base.html" %}
 {% from "_sports.html" import sketch_of with context %}
+{# one stop on the way: drag handle, place field, its hidden value "lat,lon,label" #}
+{% macro stop_row(label="", value="") -%}
+<li class="stop">
+  <button type="button" class="stop-handle" aria-label="{{ _('Move (or arrow keys)') }}" title="{{ _('Drag to change the order') }}">⠿</button>
+  <span class="stop-no" aria-hidden="true"></span>
+  <div class="ac"><input type="search" class="stop-input" value="{{ label }}" placeholder="{{ _('A place or address') }}" aria-label="{{ _('Stop') }}" aria-autocomplete="list"></div>
+  <input type="hidden" name="via" value="{{ value }}">
+  <button type="button" class="stop-remove btn-ghost btn-sm" aria-label="{{ _('Remove stop') }}">×</button>
+</li>
+{%- endmacro %}
 {% block title %}{{ _("Suggest a route") }} · {% endblock %}
 {% block head %}<link rel="stylesheet" href="{{ asset('vendor/leaflet.css') }}">{% endblock %}
 {% block content %}
@@ -25,6 +35,23 @@
     </div>
     <input type="hidden" name="lat" value="{{ start[0] if start }}">
     <input type="hidden" name="lon" value="{{ start[1] if start }}">
+  </div>
+
+  <div class="field stops-field">
+    <span class="field-label" id="stops-label">{{ _("Stops on the way") }}</span>
+    {# buttons and map above the list: the map stays put while the list grows #}
+    <div class="row stops-add">
+      <button type="button" class="btn-ghost btn-sm" data-stop-add>+ {{ _("Stop") }}</button>
+      <button type="button" class="btn-ghost btn-sm" data-stop-map aria-expanded="false" aria-controls="stops-map">◉ {{ _("Pick on the map") }}</button>
+    </div>
+    <div id="stops-map" class="stops-map" hidden
+         data-bases='{{ {"map": _("Map"), "satellite": _("Satellite"), "terrain": _("Terrain"), "dark": _("Dark")}|tojson }}'></div>
+    <ol class="stops" id="stops" aria-labelledby="stops-label"
+        data-more="{{ _('Show all {n} stops') }}" data-less="{{ _('Show fewer') }}">
+      {% for s in stops %}{{ stop_row(s.label, stop_value(s)) }}{% endfor %}
+    </ol>
+    <template id="stop-tpl">{{ stop_row() }}</template>
+    <p class="field-hint" id="stops-hint" {{ 'hidden' if not stops }}>{{ _("In this order - drag ⠿ to change it. A loop comes back to the start.") }}</p>
   </div>
 
   <div class="field" data-kind="oneway" {{ 'hidden' if kind != 'oneway' }}>
@@ -78,6 +105,7 @@
 
 <div id="suggestions">
   {% if problem %}<p class="flash flash-error">{{ _(problem, **problem_values) }}</p>{% endif %}
+  {% if stops_note and loops %}<p class="flash">{{ _("Over these stops a loop is at least about {km} km - the suggestions are longer than you asked.", km=stops_note.km) }}</p>{% endif %}
   {% if loops %}
   {% if not fits %}<p class="flash">{{ _("The terrain here is not “{profile}” - these come closest.", profile=_(profiles[wish])) }}</p>{% endif %}
   <div id="suggest-map" class="suggest-map card"
@@ -109,6 +137,7 @@
         <input type="hidden" name="lat" value="{{ start[0] }}">
         <input type="hidden" name="lon" value="{{ start[1] }}">
         <input type="hidden" name="start_label" value="{{ place }}">
+        {% for s in stops %}<input type="hidden" name="via" value="{{ stop_value(s) }}">{% endfor %}
         {% if kind == "oneway" %}
         <input type="hidden" name="to_lat" value="{{ finish[0] }}">
         <input type="hidden" name="to_lon" value="{{ finish[1] }}">
@@ -117,6 +146,7 @@
         {% else %}
         <input type="hidden" name="km" value="{{ lp.asked_km }}">
         <input type="hidden" name="heading" value="{{ lp.heading }}">
+        {% if stops %}<input type="hidden" name="cand" value="{{ lp.key }}">{% endif %}
         {% endif %}
         <button type="submit" class="btn-sm">{{ _("Take over") }}</button>
       </form>

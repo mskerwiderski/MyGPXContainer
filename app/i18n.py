@@ -89,6 +89,22 @@ DE: dict[str, str] = {
     "This link does not lead to a public website.":
         "Dieser Link führt auf keine öffentliche Website.",
     "Too many redirects.": "Zu viele Weiterleitungen.",
+    # stops on the way (suggest.html, suggest.js, pages.suggest_page)
+    "At most {max} stops.": "Höchstens {max} Stationen.",
+    "Drag to change the order": "Ziehen, um die Reihenfolge zu ändern",
+    "In this order - drag ⠿ to change it. A loop comes back to the start.":
+        "In dieser Reihenfolge – mit ⠿ verschieben. Eine Rundtour kommt zum Start zurück.",
+    "Move (or arrow keys)": "Verschieben (oder Pfeiltasten)",
+    "Over these stops a loop is at least about {km} km - the suggestions are longer than you "
+    "asked.":
+        "Über diese Stationen ist eine Rundtour mindestens etwa {km} km lang – die Vorschläge "
+        "sind länger als gewünscht.",
+    "Pick on the map": "Auf der Karte wählen",
+    "Remove stop": "Station entfernen",
+    "Show all {n} stops": "Alle {n} Stationen zeigen",
+    "Show fewer": "Weniger zeigen",
+    "Stop": "Station",
+    "Stops on the way": "Zwischenstationen",
     # way types and surfaces (waytypes.py, _ways.html)
     "Asphalt": "Asphalt",
     "Cobbles": "Pflaster",

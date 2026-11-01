@@ -504,6 +504,34 @@ async def _resolve(text: str, lang: str, near) -> tuple[str, tuple[float, float]
     return (hit[0], (hit[1], hit[2])) if hit else None
 
 
+def _stops_from(values: list[str]) -> list[dict]:
+    """The stops of the form, in their order: each "lat,lon,label" (lat/lon
+    empty when nobody picked a hit - then the label is looked up)."""
+    out = []
+    for v in values[:suggest.STOPS_MAX]:
+        lat, lon, label = (v.split(",", 2) + ["", ""])[:3]
+        point = _point({"lat": lat, "lon": lon})
+        label = label.strip()[:100]
+        if point or label:
+            out.append({"point": point, "label": label})
+    return out
+
+
+def _stop_value(stop: dict) -> str:
+    lat, lon = stop["point"] if stop["point"] else ("", "")
+    return f"{lat},{lon},{stop['label']}"
+
+
+@router.get("/suggest/where")
+def suggest_where(lat: str = "", lon: str = ""):
+    """A name for a point tapped on the map (local place list, nothing leaves)."""
+    point = _point({"lat": lat, "lon": lon})
+    if not point:
+        return {"label": ""}
+    return {"label": places.label_at(*point), "lat": round(point[0], 5),
+            "lon": round(point[1], 5)}
+
+
 @router.get("/suggest/places")
 async def suggest_places(request: Request, q: str = "", lat: str = "", lon: str = ""):
     """Addresses and places while typing (places.search): [{label, lat, lon}]."""
@@ -524,9 +552,12 @@ async def suggest_page(request: Request):
     km = search._num(q.get("km"))
     place, to_place = q.get("place", "").strip()[:100], q.get("to_place", "").strip()[:100]
     start, finish = _point(q), _point(q, "to_lat", "to_lon")
-    loops, problem, values = [], "", {}
+    stops = _stops_from(q.getlist("via"))
+    loops, problem, values, note = [], "", {}, None
+    if len(q.getlist("via")) > suggest.STOPS_MAX:
+        problem, values = N_("At most {max} stops."), {"max": suggest.STOPS_MAX}
     longest = suggest.limit(sport)
-    if "sport" in q and (kind == "oneway" or km is not None):
+    if "sport" in q and (kind == "oneway" or km is not None) and not problem:
         if kind == "loop" and not suggest.MIN_KM <= km <= longest:
             problem, values = N_("Pick a distance from {min} to {max} km."), {
                 "min": suggest.MIN_KM, "max": longest}
@@ -538,6 +569,14 @@ async def suggest_page(request: Request):
                 problem, values = N_("Place “{place}” not found"), {"place": place}
         elif start is None:
             problem = N_("Pick a start: your location or a place.")
+        for stop in stops if not problem else []:
+            if stop["point"] is None:
+                hit = await _resolve(stop["label"], lang, start or _area(request))
+                if not hit:
+                    problem, values = N_("Place “{place}” not found"), {"place": stop["label"]}
+                    break
+                stop["label"], stop["point"] = hit
+        points = [s["point"] for s in stops]
         if kind == "oneway" and not problem:
             if finish is None and to_place:
                 hit = await _resolve(to_place, lang, start)
@@ -548,7 +587,8 @@ async def suggest_page(request: Request):
             elif finish is None:
                 problem = N_("Pick a destination.")
             if finish and not problem:
-                crow = gpx.haversine(start, finish) / 1000
+                ring = [start, *points, finish]
+                crow = sum(gpx.haversine(a, b) for a, b in zip(ring, ring[1:])) / 1000
                 if crow < suggest.MIN_ONEWAY_KM:
                     problem, values = N_("Pick a destination at least {min} km away."), {
                         "min": suggest.MIN_ONEWAY_KM}
@@ -558,8 +598,14 @@ async def suggest_page(request: Request):
                         "crow": round(crow), "max": longest}
         if not problem:
             try:
-                loops = await (suggest.oneway(sport, start, finish, wish) if kind == "oneway"
-                               else suggest.suggest(sport, start, km, wish))
+                if kind == "oneway":
+                    loops = await suggest.oneway(sport, start, finish, wish, points)
+                elif points:
+                    loops, shortest = await suggest.suggest_stops(sport, start, points, km, wish)
+                    if shortest > km * 1.1:
+                        note = {"km": round(shortest)}
+                else:
+                    loops = await suggest.suggest(sport, start, km, wish)
             except suggest.Unavailable as e:
                 st = routing.status()
                 problem, values = e.text, e.values
@@ -573,12 +619,15 @@ async def suggest_page(request: Request):
              for loop in loops]
     return web.render(request, "suggest.html", kind=kind, sport=sport, wish=wish, km=km,
                       place=place, to_place=to_place, start=start, finish=finish,
+                      stops=stops, stop_value=_stop_value, stops_note=note,
                       located=bool(start and not q.get("place")), loops=loops, problem=problem,
                       problem_values=values, fits=suggest.fits(loops, wish),
                       offered=suggest.OFFERED, chips=suggest.CHIPS, limit=suggest.limit,
                       loop_sketch=lambda loop: gpx.sketch(gpx.Track(points=loop.points)),
                       elevations=_profiles(loops),
                       lines_json=web.script_json({"start": start, "finish": finish,
+                                                  "stops": [s["point"] for s in stops
+                                                            if s["point"]],
                                                   "loops": shown}), **_ctx())
 
 
@@ -596,14 +645,18 @@ def _town(label: str) -> str:
     return parts[0]
 
 
-def _name(loop: suggest.Loop, sport: str, oneway: bool, start_label: str, finish_label: str) -> str:
+def _name(loop: suggest.Loop, sport: str, oneway: bool, start_label: str, finish_label: str,
+          stops: list[dict] = ()) -> str:
     """"Starnberg via Percha 42k 380hm" / "München to Schliersee 118k 1240hm",
-    the places from the local place list; without it the places the user
-    typed or picked."""
-    head = places.route_head(loop.points, oneway)
+    with stops "Starnberg via Percha, Andechs …"; the places from the local
+    place list, without it the places the user typed or picked."""
+    head = places.route_head(loop.points, oneway, [s["point"] for s in stops])
     if not head:
         a, b = _town(start_label), _town(finish_label)
         head = (f"{a or 'Start'} to {b or 'Finish'}" if oneway else a or "Loop")
+        names = [n for n in dict.fromkeys(_town(s["label"]) for s in stops) if n]
+        if names:
+            head += " via " + ", ".join(names)
     return f"{head} {_km_label(loop.km, sport)}k {loop.ascent_m or 0}hm"
 
 
@@ -612,23 +665,31 @@ async def suggest_take(request: Request, sport: str = Form(...), profile: str = 
                        lat: str = Form(...), lon: str = Form(...), kind: str = Form("loop"),
                        km: float = Form(0), heading: int = Form(0), to_lat: str = Form(""),
                        to_lon: str = Form(""), cand: str = Form(""), start_label: str = Form(""),
-                       finish_label: str = Form("")):
+                       finish_label: str = Form(""), via: list[str] = Form([])):
     """One of the suggestions as the user's own route: computed again from the
     same parameters (GraphHopper gives the same route), nothing kept between."""
     start = _point({"lat": lat, "lon": lon})
     finish = _point({"lat": to_lat, "lon": to_lon})
     oneway = kind == "oneway"
-    bad = sport not in suggest.ENGINE or profile not in PROFILES or start is None
+    stops = _stops_from(via)
+    points = [s["point"] for s in stops]
+    bad = (sport not in suggest.ENGINE or profile not in PROFILES or start is None
+           or len(via) > suggest.STOPS_MAX or None in points)
     if oneway:
-        bad = bad or finish is None or cand not in suggest.ONEWAY_KEYS
+        keys = suggest.STOPS_ONEWAY_KEYS if points else suggest.ONEWAY_KEYS
+        bad = bad or finish is None or cand not in keys
     else:
-        bad = (bad or heading not in suggest.HEADINGS
-               or not suggest.MIN_KM <= km <= suggest.limit(sport) * suggest.ASK_SPAN)
+        bad = (bad or not suggest.MIN_KM <= km <= suggest.limit(sport) * suggest.ASK_SPAN
+               or (not suggest.stops_key_ok(cand) if points else heading not in suggest.HEADINGS))
     if bad:
         return web.error(request, 422, N_("Unknown suggestion"))
     try:
-        loop = await (suggest.oneway_one(sport, start, finish, profile, cand) if oneway
-                      else suggest.one(sport, start, km, profile, heading))
+        if oneway:
+            loop = await suggest.oneway_one(sport, start, finish, profile, cand, points)
+        elif points:
+            loop = await suggest.stops_loop_one(sport, start, points, profile, cand, km)
+        else:
+            loop = await suggest.one(sport, start, km, profile, heading)
     except suggest.Unavailable as e:
         return web.error(request, 503, N_("No suggestion"), e.text)
     if loop is not None and oneway and loop.km > suggest.limit(sport):
@@ -638,7 +699,7 @@ async def suggest_take(request: Request, sport: str = Form(...), profile: str = 
                          N_("No way found from the start to the destination.") if oneway
                          else N_("No loop found from here. Try another start or distance."))
     lang = web.lang(request)
-    name = _name(loop, sport, oneway, start_label[:100], finish_label[:100])
+    name = _name(loop, sport, oneway, start_label[:100], finish_label[:100], stops)
     description = gettext(lang, N_("Suggested by MyGPXContainer on {date}: {sport}, {profile}."),
                           date=web.date(request, lang, now_utc()),
                           sport=gettext(lang, BY_KEY[sport].label),
