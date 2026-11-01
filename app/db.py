@@ -58,6 +58,15 @@ def _migrate(engine: Engine) -> None:
         cols = [r[1] for r in con.exec_driver_sql("PRAGMA table_info(route)")]
         if "reversed" not in cols:       # v1.1.0: a route can be turned round
             con.exec_driver_sql("ALTER TABLE route ADD COLUMN reversed BOOLEAN NOT NULL DEFAULT 0")
+        if "elevation_source" not in cols:   # v1.5.0: heights from the elevation model
+            con.exec_driver_sql("ALTER TABLE route ADD COLUMN elevation_source VARCHAR NOT NULL "
+                                "DEFAULT 'pending'")
+            con.exec_driver_sql("ALTER TABLE route ADD COLUMN original_sha VARCHAR NOT NULL "
+                                "DEFAULT ''")
+            if "gpx_sha" in cols:
+                con.exec_driver_sql("UPDATE route SET original_sha = gpx_sha")
+            con.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_route_original_sha "
+                                "ON route (original_sha)")
         cols = [r[1] for r in con.exec_driver_sql("PRAGMA table_info(garmincourse)")]
         if "wanted" in cols:             # v0.17.0: sent on request, no more marks and sync
             _rows_are_courses(con, cols)

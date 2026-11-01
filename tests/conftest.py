@@ -33,6 +33,18 @@ def isolated_env(tmp_path, monkeypatch):
     monkeypatch.setattr(auth_myauth, "_members", {})
     from app.auth import garmin_link
     monkeypatch.setattr(garmin_link, "_sealer", None)
+    # no test loads elevation tiles: the model "has nothing here" (heights stay
+    # as in the file) unless a test hands in its own sampler; no catch-up loop
+    from app import elevation
+
+    class NoDem:
+        def elevation(self, lat, lon):
+            return None
+    monkeypatch.setattr(elevation, "_sampler", NoDem)
+
+    async def no_loop():
+        return None
+    monkeypatch.setattr(elevation, "catch_up_loop", no_loop)
     garmin_link._signins.clear()
     from app import geocode
 

@@ -95,11 +95,27 @@ Docs and code comments are English; the UI is English and German (below).
   names and descriptions are never translated.
 
 ## Routes and GPX
-- **The uploaded file stays byte-identical** (`store.py`, content-addressed
-  `store/ab/cd/<sha>.gpx`); the same file twice among ONE user's routes =
-  duplicate (two users may have it, the store keeps it once). Figures
-  (`gpx.stats`) are in the `Route` row; map/profile are computed by
-  `gpx.display` on request (cached per SHA and direction).
+- **The stored file is the one that came, with MGC's own heights** (v1.5.0,
+  Michael 2026-11-01 - until then it stayed byte-identical): `store.py`,
+  content-addressed `store/ab/cd/<sha>.gpx`. The same file twice among ONE
+  user's routes = duplicate, judged on the file AS IT CAME
+  (`Route.original_sha`, or `gpx_sha`). Figures (`gpx.stats`) are in the
+  `Route` row; map/profile are computed by `gpx.display` on request (cached
+  per SHA and direction).
+- **Heights from the elevation model (`elevation.py`, v1.5.0)**: every route
+  that is made (upload, link, Komoot, Garmin course/activity, suggestion, a
+  new file in edit) gets Copernicus GLO-30 heights through the MyCommons
+  block `dem` (`app/dem/` is a copy, `MyCommons/sync.sh dem app`; shared with
+  MyFITContainer): smoothed ±50 m, written into the file's `<ele>`
+  (`gpx.with_elevations` - times, extensions, waypoints, prefixes stay),
+  ascent/descent with a 4 m hysteresis (`gpx._climb` = `dem.terrain.gain_loss`
+  - no longer the plain step sum). `elevation_source` dem | kept (no DEM
+  there: the file's heights) | pending (tile not loadable: `catch_up` at
+  start and every 6 h - also did the routes from before v1.5.0; one file
+  for all routes sharing it). Tiles in MGC_DEM_DIR (Phoenix: /routing/dem,
+  outside the backup). Creating a route can load a tile (~30 MB): async
+  handlers call routes.create/update in a thread. Mock point
+  `elevation._sampler()`; conftest's `NoDem` = "kept", no catch-up loop.
 - **Direction (v1.1.0, Michael 2026-10-31)**: every drawing of a route shows
   which way it goes - arrows on the Leaflet maps (`mgcArrows` in
   map_base.js, every ~110-150 px, drawn again on zoom; route page, overview,
@@ -133,8 +149,7 @@ Docs and code comments are English; the UI is English and German (below).
   duplicate check; Garmin rows and "shared by" stay with the original.
 - `gpx.parse` (defusedxml, elements by local name, GPX 1.0 + 1.1): all track
   segments in file order, otherwise the `rte`; (0,0) and invalid points are
-  dropped. Ascent = sum of the elevation steps like Komoot/Garmin,
-  deliberately without smoothing.
+  dropped (`_points_of`, the same selection `with_elevations` writes to).
 - Sports = Garmin `typeKey` from `sports.py` (fetched once live,
   2026-10-27); stored in the order of `SPORTS`.
 - Timestamps are UTC with tzinfo (sqlmodel ≥ 0.0.48 rejects naive ones).

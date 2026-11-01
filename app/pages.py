@@ -199,19 +199,21 @@ async def route_from_link(request: Request, url: str = Form(...), sports: list[s
         got = await sources.fetch(url, auth.uid(request), web.lang(request))
     except sources.SourceError as e:
         return again(e.text, **e.values)
-    with get_session() as s:
-        try:
-            route = routes.create(s, got.data, filename=got.filename, name=got.name,
-                                  description=description or got.description,
-                                  sport_keys=sports or got.sports, user=_user(request),
-                                  source=got.source, source_url=got.source_url,
-                                  external_id=got.external_id,
-                                  folder_id=folders.valid_id(s, _user(request), folder))
-        except gpx.GpxError as e:
-            return again(str(e))
-        except routes.Duplicate as d:
-            return again(N_("This route is already here: “{name}”."), name=d.route.name,
-                         route_id=d.route.id)
+    def create():                     # in a thread: the heights may load a tile
+        with get_session() as s:
+            return routes.create(s, got.data, filename=got.filename, name=got.name,
+                                 description=description or got.description,
+                                 sport_keys=sports or got.sports, user=_user(request),
+                                 source=got.source, source_url=got.source_url,
+                                 external_id=got.external_id,
+                                 folder_id=folders.valid_id(s, _user(request), folder))
+    try:
+        route = await asyncio.to_thread(create)
+    except gpx.GpxError as e:
+        return again(str(e))
+    except routes.Duplicate as d:
+        return again(N_("This route is already here: “{name}”."), name=d.route.name,
+                     route_id=d.route.id)
     return RedirectResponse(f"/routes/{route.id}", status_code=303)
 
 
@@ -291,17 +293,18 @@ async def garmin_activities_take(request: Request, ids: list[str] = Form([]),
         except sources.SourceError as e:
             results.append((activity_id, None, None, gettext(lang, e.text, **e.values)))
             continue
-        with get_session() as s:
-            try:
-                route = routes.create(s, got.data, name=got.name, description=got.description,
-                                      sport_keys=got.sports, user=user, source=got.source,
-                                      source_url=got.source_url, external_id=got.external_id,
-                                      folder_id=folders.valid_id(s, user, folder))
-                results.append((got.name, route, None, None))
-            except routes.Duplicate as d:
-                results.append((got.name, None, d.route, None))
-            except gpx.GpxError as e:
-                results.append((got.name, None, None, str(e)))
+        def create(got=got):           # in a thread: the heights may load a tile
+            with get_session() as s:
+                return routes.create(s, got.data, name=got.name, description=got.description,
+                                     sport_keys=got.sports, user=user, source=got.source,
+                                     source_url=got.source_url, external_id=got.external_id,
+                                     folder_id=folders.valid_id(s, user, folder))
+        try:
+            results.append((got.name, await asyncio.to_thread(create), None, None))
+        except routes.Duplicate as d:
+            results.append((got.name, None, d.route, None))
+        except gpx.GpxError as e:
+            results.append((got.name, None, None, str(e)))
     if len(results) == 1 and results[0][1]:
         return RedirectResponse(f"/routes/{results[0][1].id}", status_code=303)
     return web.render(request, "route_upload_result.html", results=results, too_many=False,
@@ -430,22 +433,32 @@ def route_edit(request: Request, route_id: int):
 async def route_save(request: Request, route_id: int, name: str = Form(...),
                      description: str = Form(""), sports: list[str] = Form([]),
                      folder: str = Form(""), file: UploadFile | None = File(None)):
-    with get_session() as s:
-        route = routes.get_own(s, _user(request), route_id)
-        if not route:
-            return _not_found(request)
-        data = await file.read(gpx.MAX_BYTES + 1) if file and file.filename else None
-        try:
-            routes.update(s, route, name=name, description=description, sport_keys=sports,
-                          data=data, folder_id=folders.valid_id(s, _user(request), folder))
-        except (gpx.GpxError, routes.Duplicate) as e:
-            s.rollback()
-            s.refresh(route)
-            problem = (str(e) if isinstance(e, gpx.GpxError)
-                       else N_("This GPX file is already the route “{name}”."))
-            dup = e.route if isinstance(e, routes.Duplicate) else None
-            return web.render(request, "route_edit.html", 422, route=route, problem=problem,
-                              duplicate=dup, **_ctx(), **_folders(request))
+    data = await file.read(gpx.MAX_BYTES + 1) if file and file.filename else None
+
+    def save():                       # in a thread: a new file's heights may load a tile
+        with get_session() as s:
+            route = routes.get_own(s, _user(request), route_id)
+            if not route:
+                return None, None, None
+            try:
+                routes.update(s, route, name=name, description=description, sport_keys=sports,
+                              data=data, folder_id=folders.valid_id(s, _user(request), folder))
+                return route, None, None
+            except (gpx.GpxError, routes.Duplicate) as e:
+                s.rollback()
+                s.refresh(route)
+                if isinstance(e, routes.Duplicate):
+                    s.refresh(e.route)       # read again: the page shows it after the session
+                return route, e, None
+    route, failed, _ = await asyncio.to_thread(save)
+    if route is None:
+        return _not_found(request)
+    if failed is not None:
+        problem = (str(failed) if isinstance(failed, gpx.GpxError)
+                   else N_("This GPX file is already the route “{name}”."))
+        dup = failed.route if isinstance(failed, routes.Duplicate) else None
+        return web.render(request, "route_edit.html", 422, route=route, problem=problem,
+                          duplicate=dup, **_ctx(), **_folders(request))
     return RedirectResponse(f"/routes/{route_id}", status_code=303)
 
 
@@ -766,13 +779,15 @@ async def suggest_take(request: Request, sport: str = Form(...), profile: str = 
                           date=web.date(request, lang, now_utc()),
                           sport=gettext(lang, BY_KEY[sport].label),
                           profile=gettext(lang, PROFILES[profile]))
-    with get_session() as s:
-        try:
-            route = routes.create(s, gpx.write(name, loop.points), name=name,
-                                  description=description, sport_keys=[sport],
-                                  user=_user(request), source="generated")
-        except routes.Duplicate as d:
-            route = d.route
+    def create():                     # in a thread: the heights may load a tile
+        with get_session() as s:
+            try:
+                return routes.create(s, gpx.write(name, loop.points), name=name,
+                                     description=description, sport_keys=[sport],
+                                     user=_user(request), source="generated")
+            except routes.Duplicate as d:
+                return d.route
+    route = await asyncio.to_thread(create)
     return RedirectResponse(f"/routes/{route.id}", status_code=303)
 
 

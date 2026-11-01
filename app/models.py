@@ -48,8 +48,13 @@ class Route(SQLModel, table=True):
     loop: bool = False
     point_count: int
     # ridden the other way round than the file goes (v1.1.0): the file stays
-    # byte-identical, map, profile, figures, download and Garmin are reversed
+    # as it is, map, profile, figures, download and Garmin are reversed
     reversed: bool = False
+    # the heights (elevation.py, v1.5.0): the file holds the elevation model's
+    # heights once this is "dem" ("kept": the model has none there, "pending":
+    # still to do); `original_sha` = the file as it came, for duplicates
+    elevation_source: str = "pending"
+    original_sha: str = Field(default="", index=True)
     # where it came from: upload | komoot | garmin | url
     source: str = "upload"
     source_url: str = ""

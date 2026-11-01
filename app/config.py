@@ -29,6 +29,8 @@ class Settings:
         # App key from MyAuth's APP_KEYS (only in .env): fetches a user's Garmin
         # token (auth.garmin_token). Empty = no Garmin (share links, sync).
         self.myauth_app_key = os.environ.get("MYAUTH_APP_KEY", "")
+        # The elevation model's tiles (elevation.py, dem block): rebuildable cache.
+        self.dem_dir = Path(os.environ.get("MGC_DEM_DIR", str(self.data_dir / "dem")))
         # The time zone for dates when the user has none of their own.
         self.timezone = os.environ.get("MGC_TIMEZONE") or os.environ.get("TZ") or "UTC"
         # Own GraphHopper for the loop suggestions (routing/, suggest.py) and the

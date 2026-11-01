@@ -17,8 +17,9 @@ or Komoot.
 
 - **Routes:** upload GPX (up to 50 at once) or paste a share link - a Komoot
   tour, a Garmin Connect course (yours or a public one), any link to a GPX
-  file. The file is kept byte for byte; distance, climbing and shape are
-  computed from it.
+  file. Heights and climb are MyGPXContainer's own, from the Copernicus
+  elevation model, whatever the source said - so every route is measured
+  the same way.
 - **Direction:** arrows on every map and in the list show which way a route
   goes; "Reverse direction" turns it round (start and finish, climbs, the
   download and Garmin follow) - the uploaded file stays as it is. "Copy"
@@ -171,6 +172,7 @@ All settings are environment variables, usually in `.env`
 | `MGC_SETUP_CODE` | random, in the log | the code the first-start page asks for |
 | `MGC_SECRET_KEY` | key file in the data dir | Fernet key for the stored Garmin access; keep it apart from backups of the data if you can |
 | `MGC_TIMEZONE` | `TZ`, else UTC | dates for people without a time zone of their own |
+| `MGC_DEM_DIR` | `/data/dem` | cache of the elevation model's tiles (rebuildable; 1° each, up to ~30 MB) |
 | `MGC_MAX_BODY_MB` | `100` | largest request (uploads) |
 | `MGC_ROUTING_URL` | empty | the routing service; empty = no suggestions |
 | `MGC_PHOTON_URL` | `https://photon.komoot.io` | address search on `/suggest` |
@@ -211,6 +213,9 @@ The app talks to these, from the server unless noted:
   komoot (address search on `/suggest`) - both have fair-use rules; for
   heavy use run your own Photon (`MGC_PHOTON_URL`).
 - **Geofabrik** (map extracts for the routing service).
+- **Copernicus GLO-30** elevation model, from the AWS Open Data bucket: the
+  heights and climb of every route (only which 1° tile is fetched leaves
+  the server; tiles are cached).
 - In the browser: map tiles from **OpenStreetMap**, **OpenTopoMap** and
   **Esri World Imagery** - mind their tile usage policies.
 

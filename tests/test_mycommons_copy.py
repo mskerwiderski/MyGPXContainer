@@ -12,7 +12,7 @@ SYNC = REPO.parent / "MyCommons" / "sync.sh"
 
 
 @pytest.mark.skipif(not SYNC.is_file(), reason="MyCommons is not cloned next to this repo")
-@pytest.mark.parametrize("block", ["access", "garmin_api", "garmin_login"])
+@pytest.mark.parametrize("block", ["access", "garmin_api", "garmin_login", "dem"])
 def test_the_copy_matches_mycommons(block):
     r = subprocess.run([str(SYNC), "--check", block, str(REPO / "app")],
                        capture_output=True, text=True)

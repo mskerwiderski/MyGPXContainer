@@ -3,6 +3,7 @@ UI in English and German, as set in MyAuth (i18n.py)."""
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -11,7 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import auth, pages, routing
+from . import auth, elevation, pages, routing
 from .auth import local as _local_accounts  # noqa: F401 - its pages (modes local, single)
 from .config import get_settings
 from .db import get_engine, get_session
@@ -26,9 +27,12 @@ async def lifespan(app: FastAPI):
     with get_session() as s:
         routing.setup(s)          # the map regions for the routing container
     _local_accounts.announce_setup()
+    # routes still without the elevation model's heights (elevation.py)
+    catching_up = asyncio.create_task(elevation.catch_up_loop())
     if get_settings().auth_mode == "none":
         logging.getLogger(__name__).warning("MGC_AUTH=none: NO sign-in - development only")
     yield
+    catching_up.cancel()
 
 
 app = FastAPI(title="MyGPXContainer", lifespan=lifespan)

@@ -26,8 +26,10 @@ def test_upload_one_file_opens_the_route(client):
     route = all_routes()[0]
     assert r.headers["location"] == f"/routes/{route.id}"
     assert route.name == "Lake" and route.sports == ["hiking", "gravel_cycling"]
-    assert route.ascent_m == 19 and route.point_count == 20 and not route.loop
-    assert store.get(route.gpx_sha) == make_gpx("Lake")
+    # 19 steps of 1 m: the 4 m hysteresis counts 16 (the last 3 m never add up)
+    assert route.ascent_m == 16 and route.point_count == 20 and not route.loop
+    # no elevation model here (conftest): the file stays as it came
+    assert store.get(route.gpx_sha) == make_gpx("Lake") and route.elevation_source == "kept"
 
 
 def test_name_falls_back_to_file_name(client):

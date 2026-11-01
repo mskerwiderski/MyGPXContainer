@@ -106,10 +106,20 @@ def copy(session: Session, route: Route, name: str) -> Route:
     return twin
 
 
-def _apply_file(route: Route, data: bytes, track: gpx.Track) -> None:
+def _apply_file(route: Route, data: bytes) -> None:
+    """The file as it came: its heights from the elevation model (elevation.py
+    - blocking, tile downloads), stored, the figures from it."""
+    from . import elevation
+    route.original_sha = store_sha(data)
+    data, route.elevation_source = elevation.correct(data)
     route.gpx_sha = store.put(data)
-    for k, v in gpx.stats(track).items():
+    for k, v in gpx.stats(gpx.parse(data)).items():
         setattr(route, k, v)
+
+
+def _same_file(sha: str):
+    """WHERE: a route made from this file - as it came or as stored."""
+    return or_(Route.original_sha == sha, Route.gpx_sha == sha)
 
 
 def create(session: Session, data: bytes, *, filename: str = "", name: str = "",
@@ -121,7 +131,7 @@ def create(session: Session, data: bytes, *, filename: str = "", name: str = "",
     routes is a Duplicate."""
     track = gpx.parse(data)      # raises GpxError before anything is stored
     mine = owned_by(user)        # a duplicate is one among the user's own routes
-    existing = session.exec(select(Route).where(*mine, Route.gpx_sha == store_sha(data))).first()
+    existing = session.exec(select(Route).where(*mine, _same_file(store_sha(data)))).first()
     if not existing and external_id:     # the same tour/course again, maybe changed since
         existing = session.exec(select(Route).where(*mine, Route.source == source,
                                                     Route.external_id == external_id)).first()
@@ -139,7 +149,7 @@ def create(session: Session, data: bytes, *, filename: str = "", name: str = "",
                   folder_id=folder_id,
                   created_by_uid=user.get("uid"), created_by_username=user.get("username") or "",
                   created_by_name=user.get("display_name") or user.get("username") or "")
-    _apply_file(route, data, track)
+    _apply_file(route, data)
     session.add(route)
     session.commit()
     session.refresh(route)
@@ -151,14 +161,14 @@ def update(session: Session, route: Route, *, name: str, description: str,
            folder_id: int | None = None) -> Route:
     old_sha = route.gpx_sha
     if data:
-        track = gpx.parse(data)
+        gpx.parse(data)                  # GpxError before anything changes
         dup = session.exec(select(Route).where(
             *_owner_is(route.created_by_uid, route.created_by_username),
-            Route.gpx_sha == store_sha(data), Route.id != route.id)).first()
+            _same_file(store_sha(data)), Route.id != route.id)).first()
         if dup:
             raise Duplicate(dup)
         route.reversed = False           # a new file goes the way it is drawn
-        _apply_file(route, data, track)
+        _apply_file(route, data)
     route.name = name.strip()[:200] or route.name
     route.description = description.strip()
     route.sports = sports.clean(sport_keys)

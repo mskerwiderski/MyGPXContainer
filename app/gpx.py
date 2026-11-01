@@ -70,7 +70,6 @@ def parse(data: bytes) -> Track:
     if _local(root.tag) != "gpx":
         raise GpxError(N_("This is not a valid GPX file."))
     track = Track()
-    trk_points, rte_points = [], []
     meta_name = meta_desc = ""
     for el in root:
         kind = _local(el.tag)
@@ -79,17 +78,49 @@ def parse(data: bytes) -> Track:
         elif kind in ("trk", "rte"):
             track.name = track.name or _child_text(el, "name")
             track.description = track.description or _child_text(el, "desc")
-            target = trk_points if kind == "trk" else rte_points
-            want = "trkpt" if kind == "trk" else "rtept"
-            for p in el.iter():
-                if _local(p.tag) == want and (pt := _point(p)):
-                    target.append(pt)
-    track.points = trk_points or rte_points
+    track.points = [pt for _, pt in _points_of(root)]
     track.name = meta_name or track.name
     track.description = meta_desc or track.description
     if len(track.points) < 2:
         raise GpxError(N_("The file has no track with at least two points."))
     return track
+
+
+def _points_of(root) -> list[tuple]:
+    """(element, point) of the points that make the track: all track
+    segments in file order, else the route; invalid ones left out."""
+    trk, rte = [], []
+    for el in root:
+        kind = _local(el.tag)
+        if kind in ("trk", "rte"):
+            target, want = (trk, "trkpt") if kind == "trk" else (rte, "rtept")
+            for p in el.iter():
+                if _local(p.tag) == want and (pt := _point(p)):
+                    target.append((p, pt))
+    return trk or rte
+
+
+def with_elevations(data: bytes, heights: list[float]) -> bytes:
+    """The same file with `heights` as the <ele> of its track points (the
+    points `parse` takes, in order) - everything else stays (times,
+    extensions, waypoints, the namespaces' prefixes)."""
+    import io
+    import xml.etree.ElementTree as ET
+    for _, (prefix, uri) in ElementTree.iterparse(io.BytesIO(data), events=("start-ns",)):
+        ET.register_namespace(prefix, uri)
+    root = ElementTree.fromstring(data)
+    points = _points_of(root)
+    if len(points) != len(heights):
+        raise ValueError("one height per point")
+    for (el, _), h in zip(points, heights):
+        ele = next((c for c in el if _local(c.tag) == "ele"), None)
+        if ele is None:
+            ns = el.tag[:el.tag.index("}") + 1] if el.tag.startswith("{") else ""
+            ele = ET.Element(ns + "ele")
+            el.insert(0, ele)                 # GPX wants <ele> first
+        ele.text = f"{h:.1f}"
+    return (b'<?xml version="1.0" encoding="UTF-8"?>\n'
+            + ET.tostring(root, encoding="unicode").encode())
 
 
 def haversine(a, b) -> float:
@@ -109,17 +140,13 @@ def distances(points) -> list[float]:
 
 
 def _climb(eles: list[float]) -> tuple[float, float]:
-    """Ascent and descent as the plain sum of the steps, like Komoot and
-    Garmin courses show it (Gravel 90: 223 m both). Planned routes come with
-    smooth model heights; any smoothing here cost 10-20 %. A recorded track
-    with noisy heights comes out too high - a DEM is the fix for that, later."""
-    up = down = 0.0
-    for a, b in zip(eles, eles[1:]):
-        if b > a:
-            up += b - a
-        else:
-            down += a - b
-    return up, down
+    """Ascent and descent with hysteresis (dem.terrain: a movement counts once
+    it has gone 4 m one way) - on the heights MGC put in from the elevation
+    model itself (elevation.py, v1.5.0, Michael 2026-11-01). Until then this
+    was the plain sum of the steps like Komoot shows it; with a watch's
+    noisy barometer that came out far too high (a flat ride: 555 m)."""
+    from .dem.terrain import gain_loss
+    return gain_loss(eles)
 
 
 def reverse(track: Track) -> Track:
