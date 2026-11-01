@@ -119,3 +119,12 @@ def test_reversing_swaps_the_panel_too(client, gh):
     client.get(f"/routes/{route.id}?ways=1")
     page = client.get(f"/routes/{route.id}").text
     assert 'data-swap="route-direction,route-sports,route-stats,track,ways,garmin-card"' in page
+
+
+def test_a_tiny_share_reads_less_than_one_percent(client, gh):
+    coords = [[11.0 + i * 0.001, 48.0] for i in range(301)]
+    gh.answer = (200, {"paths": [{"points": {"coordinates": coords}, "details": {
+        "road_class": [[0, 1, "cycleway"], [1, 300, "track"]], "surface": [], "track_type": []}}]})
+    route = new_route()
+    page = client.get(f"/routes/{route.id}?ways=1").text
+    assert "&lt; 1 %" in page and ">0 %<" not in page

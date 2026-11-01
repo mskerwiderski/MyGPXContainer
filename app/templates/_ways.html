@@ -13,7 +13,7 @@
   <section class="ways-kind">
     <h3>{{ title }}</h3>
     <div class="ways-bar" role="img" aria-label="{{ title }}">
-      {%- for e in ways.data[kind] %}<span class="ways-seg {{ ways.slot(kind, e.key) }}" style="flex-grow: {{ e.m }}" title="{{ _(ways.label(e.key)) }} · {{ num(e.m / 1000, 1) }} km · {{ num(e.share * 100) }} %"></span>{% endfor -%}
+      {%- for e in ways.data[kind] %}<span class="ways-seg {{ ways.slot(kind, e.key) }}" style="flex-grow: {{ e.m }}" title="{{ _(ways.label(e.key)) }} · {{ num(e.m / 1000, 1) }} km · {{ "< 1" if e.share < 0.005 else num(e.share * 100) }} %"></span>{% endfor -%}
     </div>
     <ul class="ways-list">
       {% for e in ways.data[kind] %}
@@ -21,7 +21,7 @@
         <span class="ways-swatch {{ ways.slot(kind, e.key) }}" aria-hidden="true"></span>
         <span class="ways-name">{{ _(ways.label(e.key)) }}</span>
         <span class="ways-km">{{ num(e.m / 1000, 1) }} km</span>
-        <span class="ways-share">{{ num(e.share * 100) }} %</span>
+        <span class="ways-share">{{ "< 1" if e.share < 0.005 else num(e.share * 100) }} %</span>
       </button></li>
       {% endfor %}
     </ul>
