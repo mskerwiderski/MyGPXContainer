@@ -305,7 +305,8 @@ Docs and code comments are English; the UI is English and German (below).
 - Address search while typing (`GET /suggest/places`, `places.search`):
   Photon (`MGC_PHOTON_URL`, photon.komoot.io) from the server, the bias
   (form start, else the median start of the user's routes) rounded to 0.1°.
-  The Photon client is the MyCommons block `geosearch` (`app/geosearch/`, never
+  The input is `mskAutocomplete` from msk-ui (`ui/autocomplete.js`), the Photon
+  client the MyCommons block `geosearch` (`app/geosearch/`, never
   edit it). Tests never reach it: `geosearch.photon._get_json` is blocked in conftest.
 - The form (`form.card.stack`): msk-ui's `form.card label` puts .9rem BELOW
   a label meant to wrap its field; with label and field side by side that

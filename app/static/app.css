@@ -268,13 +268,8 @@ body.selecting .bulk-bar { display: flex; position: sticky; bottom: 1rem; z-inde
 #routing-panel .tablewrap { margin-bottom: 1rem; }
 .suggest-form [data-kind][hidden] { display: none; }
 /* places and addresses while typing */
-.ac { position: relative; flex: 1; min-width: 8rem; }
+.ac { flex: 1; min-width: 8rem; }
 .ac input { width: 100%; margin: 0; }
-.ac-list { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 2px); margin: 0;
-  padding: .25rem 0; list-style: none; background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--r-sm); box-shadow: var(--shadow-md); max-height: 16rem; overflow-y: auto; }
-.ac-list li { padding: .45rem .75rem; cursor: pointer; font-size: .92rem; }
-.ac-list li:hover, .ac-list li.active { background: var(--accent-weak); color: var(--accent); }
 @media (max-width: 820px) {
   /* location button above the field, so the list of places gets the full width */
   .suggest-form .suggest-start { flex-direction: column; align-items: stretch; }

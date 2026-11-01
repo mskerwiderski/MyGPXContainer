@@ -84,64 +84,17 @@
   });
 
   function autocomplete(input, onPick, onType) {
-    var list = document.createElement("ul");
-    list.className = "ac-list";
-    list.setAttribute("role", "listbox");
-    list.hidden = true;
-    input.parentNode.appendChild(list);
-    var timer, seq = 0, active = -1, hits = [];
-
-    function close() { list.hidden = true; active = -1; }
-    function choose(i) {
-      var h = hits[i];
-      if (!h) return;
-      input.value = h.label;
-      onPick(h);
-      close();
-    }
-    function mark(i) {
-      active = i;
-      list.querySelectorAll("li").forEach(function (li, j) { li.classList.toggle("active", j === i); });
-    }
-    function show(found) {
-      hits = found;
-      list.textContent = "";
-      found.forEach(function (h, i) {
-        var li = document.createElement("li");
-        li.setAttribute("role", "option");
-        li.textContent = h.label;
-        // pointerdown: before the input loses the focus (and the list closes)
-        li.addEventListener("pointerdown", function (e) { e.preventDefault(); choose(i); });
-        list.appendChild(li);
-      });
-      list.hidden = !found.length;
-      active = -1;
-    }
-    input.addEventListener("input", function () {
-      onType();
-      clearTimeout(timer);
-      var q = input.value.trim();
-      if (q.length < 3) { close(); return; }
-      timer = setTimeout(function () {
-        var mine = ++seq;
+    mskAutocomplete(input, {
+      onPick: onPick,
+      onType: onType,
+      url: function (q) {
         var url = "/suggest/places?q=" + encodeURIComponent(q);
         if (input.name !== "place" && form.elements.lat.value) {
           url += "&lat=" + form.elements.lat.value + "&lon=" + form.elements.lon.value;
         }
-        fetch(url, { credentials: "same-origin" })
-          .then(function (r) { return r.ok ? r.json() : []; })
-          .then(function (found) { if (mine === seq) show(found); })
-          .catch(function () { close(); });
-      }, 250);
+        return url;
+      }
     });
-    input.addEventListener("keydown", function (e) {
-      if (list.hidden) return;
-      if (e.key === "ArrowDown") { e.preventDefault(); mark(Math.min(active + 1, hits.length - 1)); }
-      else if (e.key === "ArrowUp") { e.preventDefault(); mark(Math.max(active - 1, 0)); }
-      else if (e.key === "Enter" && active >= 0) { e.preventDefault(); choose(active); }
-      else if (e.key === "Escape") { close(); }
-    });
-    input.addEventListener("blur", function () { setTimeout(close, 150); });
   }
 
   // ---------- stops on the way ----------
