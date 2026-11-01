@@ -16,9 +16,11 @@
     <form method="post" action="/routes/{{ route.id }}/copy" class="inline-form">
       <button type="submit" class="btn-ghost">{{ _("Copy") }}</button></form>
     {% if garmin_user and sharing %}<a class="btn-ghost" href="/routes/share?ids={{ route.id }}&amp;back={{ ('/routes/' ~ route.id)|urlencode }}">{{ _("Share…") }}</a>{% endif %}
+    <a class="btn-ghost" href="/routes/{{ route.id }}/draw">{{ _("Edit the way") }}</a>
     <a class="btn" href="/routes/{{ route.id }}/edit">{{ _("Edit") }}</a>
   </div>
 </div>
+{% if request.query_params.get("drawn") %}<p class="card flash">{{ _("The new way is saved - its heights come from the elevation model.") }}</p>{% endif %}
 {% if request.query_params.get("copied") %}<p class="card flash">{{ _("This is a copy - rename it or change it as you like; the original stays as it is.") }} <a href="/routes/{{ route.id }}/edit">{{ _("Edit") }}</a></p>{% endif %}
 <p class="route-sports" id="route-sports">{{ badges(route.sports) }}{{ tags(route) }}
   <a class="route-folder" href="/?folder={{ folder.id if folder else 0 }}">▸ {{ folder.name if folder else _(default_folder) }}</a></p>

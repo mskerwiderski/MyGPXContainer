@@ -88,6 +88,7 @@
     }
     map.on("zoomend", draw);
     draw();
+    group.redraw = draw;          // after the line (the same array) has changed
     return group;
   };
 

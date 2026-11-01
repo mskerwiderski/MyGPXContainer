@@ -402,3 +402,21 @@ button.stop-menu-btn, button.stop-remove { flex: none; margin: 0; font-size: 1.1
   .acts-table td.act-up { color: var(--muted); font-size: .86rem; display: inline; }
   .acts-table tbody tr { grid-template-columns: repeat(4, auto); justify-content: start; }
 }
+
+/* editing the way (/routes/{id}/draw, v1.6.0) */
+.draw-tools, .draw-options { display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: .5rem .8rem; margin-bottom: .5rem; }
+.draw-undo { display: flex; gap: .4rem; }
+.draw-undo button { margin: 0; }
+.draw-options label.checkbox { margin: 0; }
+.draw-step { margin: .3rem 0 .4rem; font-weight: 600; min-height: 1.4em; }
+.draw-choice { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .5rem; }
+.draw-choice button { margin: 0; }
+.draw-choice button[hidden] { display: none; }
+.draw-map { height: 62vh; min-height: 22rem; padding: 0; overflow: hidden; cursor: crosshair; }
+.draw-stats { margin-top: .8rem; }
+.draw-profile { width: 100%; height: 5rem; padding: .3rem; }
+.draw-profile .line { fill: none; stroke: var(--accent); stroke-width: 1.2;
+  vector-effect: non-scaling-stroke; }
+.draw-profile .area { fill: var(--accent-weak); stroke: none; }
+.draw-save button:disabled { opacity: .5; }

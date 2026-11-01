@@ -163,6 +163,25 @@ Docs and code comments are English; the UI is English and German (below).
 - Timestamps are UTC with tzinfo (sqlmodel ≥ 0.0.48 rejects naive ones).
 - Jinja macros using `_`/`num` need `import … with context`.
 
+## Editing the way (`drawing.py`, `draw.html`, `static/draw.js`, v1.6.0, Michael 2026-11-01)
+- `/routes/{id}/draw` ("Edit the way" on the route): the browser holds the
+  points as the route GOES (`routes.track_of`, so a turned route comes
+  north-first) and edits them; tools re-route (section + a tapped point, or
+  "without a detour"), delete (section, ends joined - Michael: "ich muss
+  einen Abschnitt löschen können"), cut (start/end here), extend (end or
+  start). A tap snaps to the nearest point within 30 px; tapping only, so
+  it works on the phone. Undo/redo keep every state (60), Ctrl+Z/Y.
+- Roads: `POST draw/leg` (2-10 points) -> our GraphHopper, the profile of
+  the route's sport (`engine_of`, `suggest.ENGINE`) with `suggest.RULES`,
+  no round trip; "Straight line instead of roads" draws directly (forced
+  without `MGC_ROUTING_URL`). Figures: `POST draw/preview` (debounced,
+  heights from the model like on save, no file written).
+- Save = a NEW file from the points (`gpx.write`, no times/extensions),
+  through `routes.update` (over the route: new SHA -> Garmin course
+  changed, way types again, `reversed` off since the points are in the
+  drawn order) or `routes.create` "<name> (copy)"; the model's heights like
+  every import. Mock points `suggest._route`, `elevation._sampler`.
+
 ## Garmin activities as routes (`activities.py`, v1.4.0, Michael 2026-11-01)
 - Always the signed-in user's Garmin token: own activities, someone else's
   only when public (403 -> "does not share"); without a Garmin connection the

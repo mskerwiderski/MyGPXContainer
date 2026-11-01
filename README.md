@@ -24,6 +24,11 @@ or Komoot.
   goes; "Reverse direction" turns it round (start and finish, climbs, the
   download and Garmin follow) - the uploaded file stays as it is. "Copy"
   makes a second route from one, e.g. to keep both directions.
+- **Editing the way:** on the map, re-route a section over a point, delete
+  a section (its ends are joined), cut the start or the end, extend the
+  route - over roads where your routing service has maps, otherwise as a
+  straight line; undo and redo, distance, climb and profile as you go.
+  Save over the route or as a copy beside it.
 - **Way types and surfaces (optional):** which share of a route is cycleway,
   minor road, road, main road, track, path, footway - and asphalt, paved,
   cobbles, gravel, unpaved - as bars and a list; tap one and its stretches

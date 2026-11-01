@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Edit the way") }} · {{ route.name }} · {% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('vendor/leaflet.css') }}">{% endblock %}
+{% block content %}
+<a class="back" href="/routes/{{ route.id }}" data-back="/routes/{{ route.id }}">‹ {{ route.name }}</a>
+<h1>{{ _("Edit the way") }}</h1>
+
+<div class="draw" id="draw"
+     data-bases='{{ {"map": _("Map"), "satellite": _("Satellite"), "terrain": _("Terrain"), "dark": _("Dark")}|tojson }}'
+     data-steps='{{ {
+       "reroute1": _("Tap the route where the section starts."),
+       "reroute2": _("Now tap where it ends."),
+       "reroute3": _("Tap the map where the way should go instead."),
+       "delete1": _("Tap the route where the section to delete starts."),
+       "delete2": _("Now tap where it ends."),
+       "delete3": _("Delete the marked section? Its ends are joined."),
+       "trim1": _("Tap the route where it should start or end."),
+       "trim2": _("Start or end here?"),
+       "extend1": _("Tap the map: the route goes on to there."),
+       "busy": _("Working out the way…"),
+       "unsaved": _("Leave without saving?")}|tojson }}'>
+  <div class="draw-tools">
+    <div class="seg seg-radio" role="radiogroup" aria-label="{{ _('Tool') }}">
+      <label class="seg-btn"><input type="radio" name="tool" value="reroute" form="draw-none" checked><span>{{ _("Re-route") }}</span></label>
+      <label class="seg-btn"><input type="radio" name="tool" value="delete" form="draw-none"><span>{{ _("Delete") }}</span></label>
+      <label class="seg-btn"><input type="radio" name="tool" value="trim" form="draw-none"><span>{{ _("Cut") }}</span></label>
+      <label class="seg-btn"><input type="radio" name="tool" value="extend" form="draw-none"><span>{{ _("Extend") }}</span></label>
+    </div>
+    <div class="draw-undo">
+      <button type="button" class="btn-ghost btn-sm" data-undo disabled aria-label="{{ _('Undo') }}">↶ {{ _("Undo") }}</button>
+      <button type="button" class="btn-ghost btn-sm" data-redo disabled aria-label="{{ _('Redo') }}">↷ {{ _("Redo") }}</button>
+    </div>
+  </div>
+  <div class="draw-options">
+    <label class="checkbox"><input type="checkbox" id="straight" {{ 'checked disabled' if not routing }}> {{ _("Straight line instead of roads") }}</label>
+    <span class="seg seg-radio draw-end" role="radiogroup" aria-label="{{ _('Where') }}" hidden>
+      <label class="seg-btn"><input type="radio" name="end" value="end" form="draw-none" checked><span>{{ _("At the end") }}</span></label>
+      <label class="seg-btn"><input type="radio" name="end" value="start" form="draw-none"><span>{{ _("At the start") }}</span></label>
+    </span>
+  </div>
+  <p class="draw-step" id="draw-step" role="status"></p>
+  <div class="draw-choice" id="draw-choice" hidden>
+    <button type="button" class="btn-sm" data-choice="direct">{{ _("Re-route without a detour") }}</button>
+    <button type="button" class="btn-sm danger" data-choice="delete">{{ _("Delete section") }}</button>
+    <button type="button" class="btn-sm" data-choice="start">{{ _("Start here") }}</button>
+    <button type="button" class="btn-sm" data-choice="end">{{ _("End here") }}</button>
+    <button type="button" class="btn-ghost btn-sm" data-choice="cancel">{{ _("Cancel") }}</button>
+  </div>
+  <div id="draw-map" class="draw-map card"></div>
+  <div class="stats draw-stats">
+    <div class="stat"><span class="stat-label">{{ _("Distance") }}</span><span class="stat-value" data-stat="km">–</span></div>
+    <div class="stat"><span class="stat-label">{{ _("Ascent") }}</span><span class="stat-value" data-stat="up">–</span></div>
+    <div class="stat"><span class="stat-label">{{ _("Descent") }}</span><span class="stat-value" data-stat="down">–</span></div>
+    <div class="stat"><span class="stat-label">{{ _("Shape") }}</span><span class="stat-value" data-stat="loop"
+         data-loop="{{ _('Loop') }}" data-oneway="{{ _('Point to point') }}">–</span></div>
+  </div>
+  <svg class="draw-profile card" id="draw-profile" viewBox="0 0 100 30" preserveAspectRatio="none"
+       role="img" aria-label="{{ _('Elevation profile') }}"><path class="area"/><path class="line"/></svg>
+  <form method="post" action="/routes/{{ route.id }}/draw" class="actions draw-save" id="draw-save">
+    <input type="hidden" name="points" value="">
+    <button type="submit" disabled>{{ _("Save") }}</button>
+    <button type="submit" name="as_copy" value="1" class="btn-ghost" disabled>{{ _("Save as a copy") }}</button>
+    <a class="btn-ghost" href="/routes/{{ route.id }}">{{ _("Cancel") }}</a>
+  </form>
+  <p class="hint small">{{ _("Over roads where this instance's routing service has maps; elsewhere use a straight line. Heights and climb come from the elevation model when you save.") }}</p>
+</div>
+<script type="application/json" id="draw-data">{{ draw_json|safe }}</script>
+<script src="{{ asset('vendor/leaflet.js') }}"></script>
+<script src="{{ asset('map_base.js') }}"></script>
+<script src="{{ asset('draw.js') }}"></script>
+{% endblock %}

@@ -12,7 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import auth, elevation, pages, routing
+from . import auth, drawing, elevation, pages, routing
 from .auth import local as _local_accounts  # noqa: F401 - its pages (modes local, single)
 from .config import get_settings
 from .db import get_engine, get_session
@@ -74,4 +74,5 @@ def healthz():
 
 
 app.include_router(_local_accounts.router)
+app.include_router(drawing.router)
 app.include_router(pages.router)

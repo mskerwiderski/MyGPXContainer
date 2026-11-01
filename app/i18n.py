@@ -621,6 +621,47 @@ DE: dict[str, str] = {
         "Du bist als {name} angemeldet – im Auftrag von {admin}.",
     "Go to account": "Zum Konto",
     "Sign out as {name}": "Als {name} abmelden",
+    # editing the way (drawing.py, draw.html)
+    "Edit the way": "Verlauf bearbeiten",
+    "Tool": "Werkzeug",
+    "Re-route": "Umleiten",
+    "Cut": "Kürzen",
+    "Extend": "Verlängern",
+    "Undo": "Rückgängig",
+    "Redo": "Wiederholen",
+    "Straight line instead of roads": "Gerade Linie statt Straßen",
+    "Where": "Wo",
+    "At the end": "Am Ende",
+    "At the start": "Am Anfang",
+    "Re-route without a detour": "Ohne Umweg verbinden",
+    "Delete section": "Abschnitt löschen",
+    "Start here": "Hier beginnen",
+    "End here": "Hier enden",
+    "Save as a copy": "Als Kopie speichern",
+    "Tap the route where the section starts.": "Tippe auf die Route, wo der Abschnitt beginnt.",
+    "Now tap where it ends.": "Jetzt tippe, wo er endet.",
+    "Tap the map where the way should go instead.":
+        "Tippe auf die Karte, wo der Weg stattdessen entlang soll.",
+    "Tap the route where the section to delete starts.":
+        "Tippe auf die Route, wo der zu löschende Abschnitt beginnt.",
+    "Delete the marked section? Its ends are joined.":
+        "Markierten Abschnitt löschen? Seine Enden werden verbunden.",
+    "Tap the route where it should start or end.":
+        "Tippe auf die Route, wo sie beginnen oder enden soll.",
+    "Start or end here?": "Hier beginnen oder enden?",
+    "Tap the map: the route goes on to there.":
+        "Tippe auf die Karte: Die Route geht bis dorthin weiter.",
+    "Working out the way…": "Weg wird berechnet…",
+    "Leave without saving?": "Ohne Speichern verlassen?",
+    "Over roads where this instance's routing service has maps; elsewhere use a straight line. "
+    "Heights and climb come from the elevation model when you save.":
+        "Über Straßen, wo der Routing-Dienst dieser Instanz Karten hat; anderswo mit gerader "
+        "Linie. Höhen und Höhenmeter kommen beim Speichern aus dem Höhenmodell.",
+    "No way found over roads here - try a straight line.":
+        "Hier kein Weg über Straßen gefunden - versuche eine gerade Linie.",
+    "The way could not be read.": "Der Verlauf konnte nicht gelesen werden.",
+    "The new way is saved - its heights come from the elevation model.":
+        "Der neue Verlauf ist gespeichert - die Höhen kommen aus dem Höhenmodell.",
 }
 
 
