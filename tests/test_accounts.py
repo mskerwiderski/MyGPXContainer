@@ -263,7 +263,9 @@ def test_connect_garmin_with_mfa_and_use_it(client, local_mode, fake_signin, gar
     assert "Anna Garmin" in page and "Disconnect" in page
     with get_session() as s:
         row = s.exec(select(GarminLink)).one()
-    assert "tok-first" not in row.oauth2 and "o1" not in row.oauth1   # encrypted
+    # encrypted: none of the plain JSON (short values like "o1" may turn up
+    # in random ciphertext by chance - the field names do not)
+    assert "access_token" not in row.oauth2 and "oauth_token_secret" not in row.oauth1
     key = config.get_settings().data_dir / "secret.key"
     assert key.exists() and oct(key.stat().st_mode & 0o777) == "0o600"
     assert asyncio.run(auth.garmin_token(uid)) == "tok-first"
