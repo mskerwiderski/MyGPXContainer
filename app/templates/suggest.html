@@ -7,6 +7,13 @@
   <span class="stop-no" aria-hidden="true"></span>
   <div class="ac"><input type="search" class="stop-input" value="{{ label }}" placeholder="{{ _('A place or address') }}" aria-label="{{ _('Stop') }}" aria-autocomplete="list"></div>
   <input type="hidden" name="via" value="{{ value }}">
+  <div class="stop-more">
+    <button type="button" class="stop-menu-btn btn-ghost btn-sm" aria-haspopup="menu" aria-expanded="false" aria-label="{{ _('More for this stop') }}">⋯</button>
+    <div class="stop-menu" role="menu" hidden>
+      <button type="button" role="menuitem" data-stop-as="start">▶ {{ _("Use as start") }}</button>
+      <button type="button" role="menuitem" data-stop-as="finish" data-kind-only="oneway">⚑ {{ _("Use as destination") }}</button>
+    </div>
+  </div>
   <button type="button" class="stop-remove btn-ghost btn-sm" aria-label="{{ _('Remove stop') }}">×</button>
 </li>
 {%- endmacro %}
@@ -21,6 +28,22 @@
   <div class="seg seg-radio seg-full" role="radiogroup" aria-label="{{ _('Kind') }}">
     <label class="seg-btn"><input type="radio" name="kind" value="loop" {{ 'checked' if kind == 'loop' }}><span>{{ _("Loop") }}</span></label>
     <label class="seg-btn"><input type="radio" name="kind" value="oneway" {{ 'checked' if kind == 'oneway' }}><span>{{ _("From A to B") }}</span></label>
+  </div>
+
+  <div class="pick" id="pick" data-my-location="{{ _('My location') }}">
+    <button type="button" class="btn-ghost btn-sm" data-pick-map aria-expanded="false" aria-controls="pick-box">◉ {{ _("Choose on the map") }}</button>
+    <div id="pick-box" class="pick-box" hidden>
+      <div class="pick-mode">
+        <span class="field-label" id="pick-label">{{ _("A tap sets") }}</span>
+        <div class="seg seg-radio" role="radiogroup" aria-labelledby="pick-label">
+          <label class="seg-btn"><input type="radio" name="pick" value="start" form="pick-none"><span>▶ {{ _("Start") }}</span></label>
+          <label class="seg-btn"><input type="radio" name="pick" value="stop" form="pick-none"><span>{{ _("Stop") }}</span></label>
+          <label class="seg-btn" data-kind-only="oneway" {{ 'hidden' if kind != 'oneway' }}><input type="radio" name="pick" value="finish" form="pick-none"><span>⚑ {{ _("Destination") }}</span></label>
+        </div>
+      </div>
+      <div id="pick-map" class="pick-map"
+           data-bases='{{ {"map": _("Map"), "satellite": _("Satellite"), "terrain": _("Terrain"), "dark": _("Dark")}|tojson }}'></div>
+    </div>
   </div>
 
   <div class="field">
@@ -39,18 +62,14 @@
 
   <div class="field stops-field">
     <span class="field-label" id="stops-label">{{ _("Stops on the way") }}</span>
-    {# buttons and map above the list: the map stays put while the list grows #}
-    <div class="row stops-add">
-      <button type="button" class="btn-ghost btn-sm" data-stop-add>+ {{ _("Stop") }}</button>
-      <button type="button" class="btn-ghost btn-sm" data-stop-map aria-expanded="false" aria-controls="stops-map">◉ {{ _("Pick on the map") }}</button>
-    </div>
-    <div id="stops-map" class="stops-map" hidden
-         data-bases='{{ {"map": _("Map"), "satellite": _("Satellite"), "terrain": _("Terrain"), "dark": _("Dark")}|tojson }}'></div>
     <ol class="stops" id="stops" aria-labelledby="stops-label"
         data-more="{{ _('Show all {n} stops') }}" data-less="{{ _('Show fewer') }}">
       {% for s in stops %}{{ stop_row(s.label, stop_value(s)) }}{% endfor %}
     </ol>
     <template id="stop-tpl">{{ stop_row() }}</template>
+    <div class="row stops-add">
+      <button type="button" class="btn-ghost btn-sm" data-stop-add>+ {{ _("Stop") }}</button>
+    </div>
     <p class="field-hint" id="stops-hint" {{ 'hidden' if not stops }}>{{ _("In this order - drag ⠿ to change it. A loop comes back to the start.") }}</p>
   </div>
 

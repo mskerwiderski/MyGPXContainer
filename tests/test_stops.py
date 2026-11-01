@@ -158,3 +158,16 @@ def test_too_many_stops(client, gh):  # noqa: F811
 def test_no_stops_stays_as_before(gh):  # noqa: F811
     loops = asyncio.run(suggest.suggest("cycling", START, 30, "flat"))
     assert loops and all(b.get("algorithm") == "round_trip" for b in gh.bodies)
+
+
+def test_one_map_for_start_stops_and_destination(client):
+    loop = client.get("/suggest").text
+    assert 'data-pick-map' in loop and 'name="pick" value="start" form="pick-none"' in loop
+    # the destination choice is there only for A to B
+    assert 'data-kind-only="oneway" hidden><input type="radio" name="pick" value="finish"' in loop
+    oneway = client.get("/suggest?kind=oneway").text
+    assert 'data-kind-only="oneway" ><input type="radio" name="pick" value="finish"' in oneway
+    # every stop can become start or destination, and goes with one tap on ×
+    stops = client.get("/suggest?via=48.15,11.3,Alling").text
+    assert 'data-stop-as="start"' in stops and 'data-stop-as="finish"' in stops
+    assert 'class="stop-remove' in stops

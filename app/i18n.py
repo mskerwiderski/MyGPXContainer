@@ -99,7 +99,11 @@ DE: dict[str, str] = {
     "asked.":
         "Über diese Stationen ist eine Rundtour mindestens etwa {km} km lang – die Vorschläge "
         "sind länger als gewünscht.",
-    "Pick on the map": "Auf der Karte wählen",
+    "A tap sets": "Tippen setzt",
+    "Choose on the map": "Auf der Karte wählen",
+    "More for this stop": "Mehr zu dieser Station",
+    "Use as destination": "Als Ziel nehmen",
+    "Use as start": "Als Start nehmen",
     "Remove stop": "Station entfernen",
     "Show all {n} stops": "Alle {n} Stationen zeigen",
     "Show fewer": "Weniger zeigen",

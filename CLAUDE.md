@@ -203,9 +203,15 @@ Docs and code comments are English; the UI is English and German (below).
   arrow keys on it; from 5 on the list folds to first and last. Each stop
   is ONE hidden field `via` = "lat,lon,label" (app.js drops empty fields, so
   three parallel lists would lose their alignment); lat/lon empty = typed,
-  not picked -> looked up like the start. "Pick on the map": a tap adds a
-  stop named by `/suggest/where` (local place list). Buttons and pick map
-  sit ABOVE the list, so the map does not move while it grows.
+  not picked -> looked up like the start. "Choose on the map" (v1.3.2,
+  right under loop / A to B): ONE map for start, stops and destination; the
+  switch "A tap sets ▶ Start | Stop | ⚑ Destination" moves on by itself
+  (start -> destination -> stops, `nextMode`); a tapped point is named by
+  `/suggest/where` (local place list). The map sits above the fields, so it
+  does not move while the stop list grows. Each stop: ⋯ menu "Use as start
+  / destination" - they SWAP (the old start/destination takes the stop's
+  place; "My location" becomes a stop of that name), × removes directly.
+  The pick radios have `form="pick-none"` (never sent).
   A to B: through the stops ("s") or over a point beside the longest leg
   ("w<n>"); no GraphHopper alternatives (they take two points only).
   Loops: start -> stops -> start, a shaping point per leg pushed outward

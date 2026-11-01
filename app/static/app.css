@@ -348,14 +348,32 @@ button.stop-handle:focus-visible { box-shadow: var(--ring); border-radius: var(-
 .stop.dragging { box-shadow: var(--shadow-md); outline: 1px solid var(--accent-line);
   position: relative; z-index: 2; }
 .stop.dragging .stop-handle { cursor: grabbing; color: var(--accent); }
-button.stop-remove { flex: none; margin: 0; font-size: 1.1rem; line-height: 1; }
 .stops-toggle { text-align: center; }
 .stops-toggle button { margin: 0; }
 .stops-add { gap: .4rem; flex-wrap: wrap; }
 .stops-add button { margin: 0; }
-.stops-add button.active { background: var(--accent-weak); border-color: var(--accent-line); }
-.stops-map { height: 18rem; margin-top: .5rem; border-radius: var(--r-sm); cursor: crosshair;
-  border: 1px solid var(--line); }
+/* one map for start, stops and destination (v1.3.2) */
+.pick > button.active { background: var(--accent-weak); border-color: var(--accent-line);
+  color: var(--accent); }
+.pick-box { margin-top: .5rem; }
+.pick-mode { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .6rem; margin-bottom: .4rem; }
+.pick-mode .field-label { margin: 0; }
+.seg-btn[hidden] { display: none; }
+.pick-map { height: 18rem; border-radius: var(--r-sm); cursor: crosshair; border: 1px solid var(--line); }
+.stop-pin.pin-start span { background: var(--ok); }
+.stop-pin.pin-finish span { background: var(--danger); }
+/* a stop's "⋯" menu */
+.stop-more { position: relative; flex: none; }
+button.stop-menu-btn, button.stop-remove { flex: none; margin: 0; font-size: 1.1rem; line-height: 1; }
+.stop-menu { position: absolute; right: 0; top: calc(100% + .25rem); z-index: 30; min-width: 13rem;
+  display: flex; flex-direction: column; padding: .3rem; background: var(--surface-3);
+  border: 1px solid var(--line); border-radius: var(--r-sm); box-shadow: var(--shadow-md); }
+.stop-menu[hidden] { display: none; }
+.stop-menu button { margin: 0; justify-content: flex-start; text-align: left; background: none;
+  box-shadow: none; border: 0; color: var(--fg); font-weight: 400; padding: .5rem .6rem;
+  border-radius: var(--r-xs); }
+.stop-menu button:hover, .stop-menu button:focus-visible { background: var(--hover-soft); }
+.stop-menu button[hidden] { display: none; }
 .stop-pin span { display: flex; align-items: center; justify-content: center; width: 22px;
   height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
   font: 700 .72rem/1 var(--font); box-shadow: 0 0 0 2px var(--surface); }
