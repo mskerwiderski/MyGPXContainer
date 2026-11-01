@@ -116,6 +116,14 @@ Docs and code comments are English; the UI is English and German (below).
   outside the backup). Creating a route can load a tile (~30 MB): async
   handlers call routes.create/update in a thread. Mock point
   `elevation._sampler()`; conftest's `NoDem` = "kept", no catch-up loop.
+- **Smoothing stays ±50 m / 4 m (Michael 2026-11-01, measured live)**:
+  IRONMAN Vichy bike 180 km gives 2119 m (Michael remembers 2000-2100,
+  Strava ~2100); ±100 m 1839, ±150 m 1732 - too low on roads. Copernicus
+  GLO-30 is a SURFACE model (tree tops): gravel loops through forest come
+  out above Garmin's own course numbers (+28 % / +64 % on two of Michael's
+  courses; ±150 m would give -4 % / +20 %). No single window fits both;
+  the road reference wins. The real remedy for forest would be a terrain
+  model without trees (e.g. Bavaria's open DGM) - not done.
 - **Direction (v1.1.0, Michael 2026-10-31)**: every drawing of a route shows
   which way it goes - arrows on the Leaflet maps (`mgcArrows` in
   map_base.js, every ~110-150 px, drawn again on zoom; route page, overview,
