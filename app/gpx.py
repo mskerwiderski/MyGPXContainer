@@ -107,7 +107,10 @@ def with_elevations(data: bytes, heights: list[float]) -> bytes:
     import io
     import xml.etree.ElementTree as ET
     for _, (prefix, uri) in ElementTree.iterparse(io.BytesIO(data), events=("start-ns",)):
-        ET.register_namespace(prefix, uri)
+        try:
+            ET.register_namespace(prefix, uri)
+        except ValueError:                # "ns3" (Garmin's export): ElementTree keeps
+            pass                          # such names for itself and picks its own
     root = ElementTree.fromstring(data)
     points = _points_of(root)
     if len(points) != len(heights):

@@ -133,3 +133,34 @@ def test_an_old_database_gets_the_columns(tmp_path, monkeypatch):
     with get_session() as s:
         r = s.exec(select(Route)).one()
     assert r.elevation_source == "pending" and r.original_sha == r.gpx_sha
+
+
+def test_garmins_ns3_prefix(dem):
+    """Garmin's GPX export names its extension namespace "ns3" - a prefix
+    ElementTree refuses to register (found live on the catch-up, v1.5.1)."""
+    data = (b'<?xml version="1.0"?><gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1" '
+            b'xmlns:ns3="http://www.garmin.com/xmlschemas/TrackPointExtension/v1"><trk><trkseg>'
+            + b"".join(b'<trkpt lat="%.4f" lon="11.0"><ele>1</ele><extensions><ns3:TrackPointExtension>'
+                       b"<ns3:hr>120</ns3:hr></ns3:TrackPointExtension></extensions></trkpt>"
+                       % (48 + i * 0.0001) for i in range(50))
+            + b"</trkseg></trk></gpx>")
+    out = gpx.with_elevations(data, [400.0] * 50)
+    assert [p[2] for p in gpx.parse(out).points] == [400.0] * 50
+    assert b"TrackPointExtension/v1" in out and b">120<" in out
+
+
+def test_one_odd_file_does_not_hold_up_the_others(dem, monkeypatch):
+    dem(Down)
+    a, b = new("A"), new("B", lon=12.0)
+    dem(Slope)
+    real = elevation.correct
+
+    def flaky(data):
+        if data == store.get(a.gpx_sha):
+            raise RuntimeError("odd file")
+        return real(data)
+    monkeypatch.setattr(elevation, "correct", flaky)
+    elevation.catch_up()
+    with get_session() as s:
+        assert s.get(Route, a.id).elevation_source == "kept"
+        assert s.get(Route, b.id).elevation_source == "dem"

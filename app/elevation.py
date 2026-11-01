@@ -69,7 +69,11 @@ def catch_up() -> int:
             data = store.get(sha)
         except OSError:
             continue
-        new, how = correct(data)
+        try:
+            new, how = correct(data)
+        except Exception:                  # one odd file must not hold up all others
+            log.exception("dem: file %s", sha[:12])
+            new, how = data, KEPT
         if how == PENDING:
             break
         with get_session() as s:
