@@ -141,15 +141,14 @@ def test_names_from_the_place_list_with_stops(monkeypatch):
 
 
 def test_where_names_a_tapped_point(client, monkeypatch):
-    monkeypatch.setattr(places, "suburb", lambda lat, lon: None)
-    monkeypatch.setattr(places, "locality", lambda lat, lon: "Alling")
+    monkeypatch.setattr(places, "suburb", lambda lat, lon: "Puchheim-Ort")
+    monkeypatch.setattr(places, "_locality", lambda lat, lon: [48.15, 11.3, "village", "Alling"])
     assert client.get("/suggest/where?lat=48.15&lon=11.3").json() == {
-        "label": "Alling", "lat": 48.15, "lon": 11.3}
+        "label": "Alling", "lat": 48.15, "lon": 11.3}            # no suburb outside cities
     monkeypatch.setattr(places, "suburb", lambda lat, lon: "Altstadt")
-    monkeypatch.setattr(places, "locality", lambda lat, lon: "München")
+    monkeypatch.setattr(places, "_locality", lambda lat, lon: [48.1, 11.5, "city", "München"])
     assert client.get("/suggest/where?lat=48.15&lon=11.3").json()["label"] == "Altstadt, München"
-    monkeypatch.setattr(places, "suburb", lambda lat, lon: None)
-    monkeypatch.setattr(places, "locality", lambda lat, lon: None)
+    monkeypatch.setattr(places, "_locality", lambda lat, lon: None)
     assert client.get("/suggest/where?lat=48.15&lon=11.3").json()["label"] == "48.15000, 11.30000"
     assert client.get("/suggest/where?lat=x").json() == {"label": ""}
 

@@ -69,11 +69,16 @@ def _near(lat: float, lon: float, kinds, max_km: float) -> list[tuple[float, lis
     return out
 
 
+def _locality(lat: float, lon: float) -> list | None:
+    found = _near(lat, lon, WEIGHT, LOCALITY_KM)
+    return min(found, key=lambda x: x[0] / WEIGHT[x[1][2]])[1] if found else None
+
+
 def locality(lat: float, lon: float) -> str | None:
     """The city, town or village a point belongs to: the nearest, a city
     counting four times, a town twice as far as a village."""
-    found = _near(lat, lon, WEIGHT, LOCALITY_KM)
-    return min(found, key=lambda x: x[0] / WEIGHT[x[1][2]])[1][3] if found else None
+    place = _locality(lat, lon)
+    return place[3] if place else None
 
 
 def suburb(lat: float, lon: float) -> str | None:
@@ -112,10 +117,19 @@ def route_head(points: list, oneway: bool, stops: list | None = None) -> str | N
 
 
 def label_at(lat: float, lon: float) -> str:
-    """A name for a point tapped on the map: "Altstadt, München" (suburb and
-    place), the place alone, else the coordinates."""
-    names = list(dict.fromkeys(n for n in (suburb(lat, lon), locality(lat, lon)) if n))
-    return ", ".join(names) or f"{lat:.5f}, {lon:.5f}"
+    """A name for a point tapped on the map: in a city its suburb with it
+    ("Altstadt, München"), else the town or village alone - suburbs and
+    places are found apart, and outside cities a suburb near by often
+    belongs to the next town ("Puchheim-Ort" near Alling); else the
+    coordinates."""
+    place = _locality(lat, lon)
+    if not place:
+        return f"{lat:.5f}, {lon:.5f}"
+    if place[2] == "city":
+        part = suburb(lat, lon)
+        if part and part != place[3]:
+            return f"{part}, {place[3]}"
+    return place[3]
 
 
 # ---------- address search (Photon) ----------
