@@ -202,11 +202,11 @@ def test_problems_on_the_page(client, gh, monkeypatch):
 
 
 def test_place_as_start(client, gh, monkeypatch):
-    from app import geocode
+    from app.geosearch import openmeteo
 
     async def lookup(name, lang="en"):
         return ("Starnberg, Bavaria, Germany", 48.17, 11.35)
-    monkeypatch.setattr(geocode, "lookup", lookup)
+    monkeypatch.setattr(openmeteo, "lookup", lookup)
     page = client.get("/suggest?sport=running&km=10&profile=flat&place=Starnberg").text
     assert page.count('class="card suggest-card"') == 3
     assert 'name="start_label" value="Starnberg, Bavaria, Germany"' in page
@@ -376,10 +376,12 @@ PHOTON = {"features": [
 def photon(monkeypatch):
     calls = []
 
-    async def get_json(path, params):
+    from app.geosearch import photon as block
+
+    async def get_json(params):
         calls.append(params)
         return PHOTON
-    monkeypatch.setattr(places, "_get_json", get_json)
+    monkeypatch.setattr(block, "_get_json", get_json)
     return calls
 
 

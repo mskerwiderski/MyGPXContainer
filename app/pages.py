@@ -23,7 +23,6 @@ from . import (
     folders,
     garmin_courses,
     garmin_sync,
-    geocode,
     gpx,
     places,
     routes,
@@ -37,6 +36,7 @@ from . import (
     web,
 )
 from .db import get_session
+from .geosearch import openmeteo
 from .i18n import N_, gettext
 from .models import Route, now_utc
 from .sports import BY_KEY, GROUPS, PROFILES, SPORTS, profile
@@ -82,7 +82,7 @@ async def route_list(request: Request):
     if f.lat is not None:
         center = (f.lat, f.lon)
     elif f.place:
-        hit = await geocode.lookup(f.place, web.lang(request))
+        hit = await openmeteo.lookup(f.place, web.lang(request))
         if hit:
             place_label, center = hit[0], (hit[1], hit[2])
         else:
@@ -581,7 +581,7 @@ async def _resolve(text: str, lang: str, near) -> tuple[str, tuple[float, float]
     hits = await places.search(text, lang, near)
     if hits:
         return hits[0]["label"], (hits[0]["lat"], hits[0]["lon"])
-    hit = await geocode.lookup(text, lang)
+    hit = await openmeteo.lookup(text, lang)
     return (hit[0], (hit[1], hit[2])) if hit else None
 
 

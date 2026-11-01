@@ -8,28 +8,25 @@ front door, it never leaves this server.
 
 The address search while typing asks Photon (OSM, made for search-as-you-type;
 MGC_PHOTON_URL, photon.komoot.io), from the server: the typed text goes out,
-the bias towards the user's area only rounded to ~10 km. Mock points:
-`_get_json(path, params)` and the places file.
+the bias towards the user's area only rounded to ~10 km. That part is the
+MyCommons block `geosearch` (copy in app/geosearch/, never edit it). Mock
+points: `geosearch.photon._get_json(params)` and the places file.
 """
 
 from __future__ import annotations
 
 import json
 import math
-from collections import OrderedDict
-
-import httpx
 
 from . import gpx
 from .config import get_settings
+from .geosearch import photon
 
 WEIGHT = {"city": 4.0, "town": 2.0, "village": 1.0}     # a city wins from further away
 LOCALITY_KM = 25
 SUBURB_KM = 4
 CELL = 0.1                                              # degrees of the lookup grid
 _grid: tuple[float, dict] | None = None                 # (mtime of places.json, grid)
-_cache: OrderedDict = OrderedDict()
-CACHE_MAX = 200
 
 
 def _places_grid() -> dict:
@@ -132,53 +129,7 @@ def label_at(lat: float, lon: float) -> str:
     return place[3]
 
 
-# ---------- address search (Photon) ----------
+# ---------- address search: the MyCommons block geosearch ----------
 
-async def _get_json(path: str, params: dict) -> dict:
-    async with httpx.AsyncClient(timeout=8) as client:
-        r = await client.get(get_settings().photon_url + path, params=params,
-                             headers={"User-Agent": "MyGPXContainer"})
-        r.raise_for_status()
-        return r.json()
-
-
-def _label(p: dict) -> str:
-    """"Bahnhofstraße 5, 82319 Starnberg", "Lenggries, Bayern", "London, Vereinigtes Königreich"."""
-    street, number = p.get("street"), p.get("housenumber")
-    first = f"{street} {number}" if street and number else (p.get("name") or street or "")
-    city = p.get("city")
-    where = " ".join(x for x in (p.get("postcode"), city) if x) if city and city != first else ""
-    tail = p.get("country") if p.get("countrycode") not in (None, "DE") else (
-        "" if where else p.get("state") or "")
-    return ", ".join(x for x in (first, where, tail) if x)
-
-
-async def search(q: str, lang: str = "en", near: tuple[float, float] | None = None) -> list[dict]:
-    """[{label, lat, lon}] for what the user typed, nearby first. Empty when
-    Photon does not answer - the form then works with the plain text."""
-    q = " ".join(q.split())[:100]
-    if len(q) < 3:
-        return []
-    bias = (round(near[0], 1), round(near[1], 1)) if near else None
-    key = (q.casefold(), lang, bias)
-    if key in _cache:
-        _cache.move_to_end(key)
-        return _cache[key]
-    params = {"q": q, "limit": 6, "lang": lang if lang in ("de", "en", "fr") else "default"}
-    if bias:
-        params.update(lat=bias[0], lon=bias[1])
-    try:
-        data = await _get_json("/api/", params)
-    except (httpx.HTTPError, ValueError):
-        return []
-    out, seen = [], set()
-    for f in data.get("features", []):
-        coords = (f.get("geometry") or {}).get("coordinates") or []
-        label = _label(f.get("properties") or {})
-        if len(coords) >= 2 and label and label not in seen:
-            seen.add(label)
-            out.append({"label": label, "lat": round(coords[1], 6), "lon": round(coords[0], 6)})
-    _cache[key] = out
-    if len(_cache) > CACHE_MAX:
-        _cache.popitem(last=False)
-    return out
+photon.configure(user_agent="MyGPXContainer", url=lambda: get_settings().photon_url)
+search = photon.search

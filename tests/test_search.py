@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from app import geocode
+from app.geosearch import openmeteo
 from app.models import Route
 from app.search import Filters, apply
 from tests.conftest import USER, make_gpx
@@ -100,7 +100,7 @@ def test_place_is_geocoded(client, monkeypatch):
         assert params["name"] == "Starnberg"
         return {"results": [{"name": "Starnberg", "admin1": "Bavaria", "country": "Germany",
                              "latitude": 48.0, "longitude": 11.0}]}
-    monkeypatch.setattr(geocode, "_get_json", fake)
+    monkeypatch.setattr(openmeteo, "_get_json", fake)
     upload(client, "Alpha")
     upload(client, "Far away", lon=13.0)
     page = client.get("/?place=Starnberg&radius=10").text

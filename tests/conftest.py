@@ -46,20 +46,14 @@ def isolated_env(tmp_path, monkeypatch):
         return None
     monkeypatch.setattr(elevation, "catch_up_loop", no_loop)
     garmin_link._signins.clear()
-    from app import geocode
-
-    async def no_geocoding(params):
-        raise httpx.ConnectError("no network in tests")
-    monkeypatch.setattr(geocode, "_get_json", no_geocoding)
-    monkeypatch.setattr(geocode, "_cache", {})
-    from collections import OrderedDict
-
     from app import places
+    from app.geosearch import openmeteo, photon
 
-    async def no_photon(path, params):
+    async def no_network(params):
         raise httpx.ConnectError("no network in tests")
-    monkeypatch.setattr(places, "_get_json", no_photon)
-    monkeypatch.setattr(places, "_cache", OrderedDict())
+    for block in (openmeteo, photon):
+        monkeypatch.setattr(block, "_get_json", no_network)
+        block.clear_cache()
     monkeypatch.setattr(places, "_grid", None)
     yield
 

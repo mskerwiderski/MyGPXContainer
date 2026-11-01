@@ -305,7 +305,8 @@ Docs and code comments are English; the UI is English and German (below).
 - Address search while typing (`GET /suggest/places`, `places.search`):
   Photon (`MGC_PHOTON_URL`, photon.komoot.io) from the server, the bias
   (form start, else the median start of the user's routes) rounded to 0.1°.
-  Tests never reach it: `places._get_json` is blocked in conftest.
+  The Photon client is the MyCommons block `geosearch` (`app/geosearch/`, never
+  edit it). Tests never reach it: `geosearch.photon._get_json` is blocked in conftest.
 - The form (`form.card.stack`): msk-ui's `form.card label` puts .9rem BELOW
   a label meant to wrap its field; with label and field side by side that
   gap lands between them. So each entry is a `.field` (label + control,
@@ -456,7 +457,7 @@ Docs and code comments are English; the UI is English and German (below).
   back button.
 - `mgc.toast` needs the class `show` (msk-ui does not fade it in otherwise).
 - List: filters in Python (`search.py`), place via Open-Meteo geocoding
-  (`geocode.py`, mock point `_get_json`, autouse without network in tests),
+  (`geosearch.openmeteo`, mock point `_get_json`, autouse without network in tests),
   "Near me" via the browser's geolocation.
 - Browser test locally: Playwright in a scratch venv with
   `executable_path="/usr/bin/chromium"`; start the app with patched mock
