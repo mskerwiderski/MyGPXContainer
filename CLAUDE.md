@@ -209,7 +209,9 @@ Docs and code comments are English; the UI is English and German (below).
   A to B: through the stops ("s") or over a point beside the longest leg
   ("w<n>"); no GraphHopper alternatives (they take two points only).
   Loops: start -> stops -> start, a shaping point per leg pushed outward
-  (one stop: both legs to their right = opposite sides); its width from the
+  (one stop: both legs to their right = opposite sides) - from width 0.6 on
+  three along a bow (one far point gave out-and-back spurs: 60 km over one
+  near stop ran 19-30 % twice, with the bow 0-14 %, live); its width from the
   wished km (`loop_width`, DETOUR 1.3), candidates vary width and position
   ("L<m|q>:<width>" - take over recomputes it), a second round when off by
   more than 8 %. Too short a wish for the stops -> a note with the least.

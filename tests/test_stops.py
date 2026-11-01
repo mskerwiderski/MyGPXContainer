@@ -28,7 +28,7 @@ def page(client, **params):
 
 
 def test_one_stop_gives_a_loop_out_one_way_back_another():
-    there, back = suggest.shaping_points(START, [ALLING], 0.3, "m")
+    (there,), (back,) = suggest.shaping_points(START, [ALLING], 0.3, "m")
     mid = ((START[0] + ALLING[0]) / 2, (START[1] + ALLING[1]) / 2)
     # the two shaping points lie on opposite sides of the line start-stop
     def side(p):
@@ -43,9 +43,16 @@ def test_more_stops_push_outward():
     pts = suggest.shaping_points(START, stops, 0.3, "m")
     cx = (START[0] + ALLING[0] + GRAFRATH[0]) / 3
     cy = (START[1] + ALLING[1] + GRAFRATH[1]) / 3
-    for (a, b), p in zip(suggest._legs(START, stops), pts):
+    for (a, b), (p,) in zip(suggest._legs(START, stops), pts):
         mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
         assert gpx.haversine(p, (cx, cy)) > gpx.haversine(mid, (cx, cy))   # farther out
+
+
+def test_a_wide_loop_bends_in_a_bow():
+    legs = suggest.shaping_points(START, [ALLING], 1.0, "m")
+    assert [len(leg) for leg in legs] == [3, 3]
+    ring = suggest._ring(START, [ALLING], 1.0, "m")
+    assert len(ring) == 9 and ring[0] == ring[-1] == START and ring[4] == ALLING
 
 
 def test_the_width_follows_the_wished_distance():

@@ -303,10 +303,17 @@ def _legs(start, stops) -> list[tuple[tuple, tuple]]:
     return list(zip(ring, ring[1:]))
 
 
-def shaping_points(start, stops, width: float, pattern: str) -> list[tuple[float, float]]:
-    """One point per leg of the loop, `width` × the leg's length beside it,
-    pushed outward from the middle of the loop (with one stop: the way there
-    to one side, the way back to the other)."""
+BOW_FROM = 0.6               # wider than this: three shaping points along a bow per leg
+BOW = ((0.45, 0.8), (1.0, 1.0), (1.55, 0.8))   # (place relative to `at`, share of the width)
+
+
+def shaping_points(start, stops, width: float, pattern: str) -> list[list[tuple[float, float]]]:
+    """Per leg of the loop the points beside it, `width` × the leg's length
+    out, pushed outward from the middle of the loop (with one stop: both legs
+    to their right - there and back on opposite sides). One point per leg;
+    from BOW_FROM on three along a bow - one far point alone made GraphHopper
+    run out and back on the same roads (live 2026-11-01: 60 km over one near
+    stop ran 19-30 % twice, with the bow 0-14 %)."""
     pts = [start, *stops]
     cx = sum(_xy(start, p)[0] for p in pts) / len(pts)
     cy = sum(_xy(start, p)[1] for p in pts) / len(pts)
@@ -318,19 +325,27 @@ def shaping_points(start, stops, width: float, pattern: str) -> list[tuple[float
         at = 0.5 if pattern == "m" else (1 / 3 if i % 2 == 0 else 2 / 3)
         mx, my = ax + (bx - ax) * at, ay + (by - ay) * at
         side = (mx - cx) * nx + (my - cy) * ny
-        # one stop: both legs to their right - there and back are opposite sides
         sign = (1 if side >= 0 else -1) if len(stops) > 1 else 1
-        out.append(_ll(start, mx + sign * nx * width * length, my + sign * ny * width * length))
+        places = [(at, 1.0)] if width <= BOW_FROM else [
+            (at * k if k <= 1 else at + (1 - at) * (k - 1), f) for k, f in BOW]
+        out.append([_ll(start, ax + (bx - ax) * t + sign * nx * width * length * f,
+                        ay + (by - ay) * t + sign * ny * width * length * f)
+                    for t, f in places])
     return out
 
 
+def _ring(start, stops, width: float, pattern: str) -> list[tuple[float, float]]:
+    """Start, shaping points and stops in the order the loop runs."""
+    ring = [start]
+    for stop, shapes in zip([*stops, start], shaping_points(start, stops, width, pattern)):
+        ring += [*shapes, stop]
+    return ring
+
+
 def _crow_km(start, stops, width: float) -> float:
-    """The loop with its shaping points, as the crow flies, in km."""
-    total = 0.0
-    for a, b in _legs(start, stops):
-        leg = gpx.haversine(a, b)
-        total += 2 * math.hypot(leg / 2, width * leg)
-    return total / 1000
+    """The loop through its shaping points, as the crow flies, in km."""
+    ring = _ring(start, stops, width, "m")
+    return sum(gpx.haversine(a, b) for a, b in zip(ring, ring[1:])) / 1000
 
 
 def loop_width(start, stops, km: float) -> tuple[float, float]:
@@ -352,14 +367,11 @@ def loop_width(start, stops, km: float) -> tuple[float, float]:
 def stops_loop_body(sport: str, start, stops, wish: str, key: str) -> dict:
     """The loop of the candidate `key` = "L<pattern>:<width>"."""
     pattern, width = key[1], float(key.split(":", 1)[1])
-    shaping = shaping_points(start, stops, width, pattern)
-    points = [start]
-    for stop, shape in zip([*stops, start], shaping):
-        points += [shape, stop]
     engine = ENGINE[sport]
-    return {"profile": engine, "points": [[p[1], p[0]] for p in points], "ch.disable": True,
-            "elevation": True, "points_encoded": False, "instructions": False,
-            "details": ["surface", "road_class"],
+    return {"profile": engine,
+            "points": [[p[1], p[0]] for p in _ring(start, stops, width, pattern)],
+            "ch.disable": True, "elevation": True, "points_encoded": False,
+            "instructions": False, "details": ["surface", "road_class"],
             "custom_model": {"priority": WISH[wish] + RULES.get(engine, [])}}
 
 
