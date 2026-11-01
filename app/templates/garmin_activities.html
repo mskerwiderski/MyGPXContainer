@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_folder_select.html" import folder_select with context %}
+{% block title %}{{ _("From Garmin") }} · {% endblock %}
+{% block content %}
+<a class="back" href="/routes/new" data-back="/routes/new">‹ {{ _("Add route") }}</a>
+<h1>{{ _("From Garmin") }}</h1>
+<p class="muted">{{ _("Your Garmin activities with GPS. Only the way is taken - no times, no heart rate. A multisport activity offers its parts one by one.") }}</p>
+
+<form class="card garmin-filter" method="get" action="/routes/garmin">
+  <div class="row">
+    <label class="sr-only" for="sport">{{ _("Sport") }}</label>
+    <select id="sport" name="sport">
+      {% for k, label in filters.items() %}<option value="{{ k }}"{{ ' selected' if k == sport }}>{{ _(label) }}</option>{% endfor %}
+    </select>
+    <label class="filter-day">{{ _("from") }} <input type="date" name="from" value="{{ since }}"></label>
+    <label class="filter-day">{{ _("to") }} <input type="date" name="to" value="{{ until }}"></label>
+    <button type="submit" class="btn-ghost">{{ _("Show") }}</button>
+  </div>
+</form>
+
+{% if problem %}<p class="card flash flash-error">{{ problem }}</p>
+{% elif not items %}<div class="card empty"><p>{{ _("No activities with GPS here.") }}</p></div>
+{% else %}
+<form method="post" action="/routes/garmin" class="garmin-acts">
+  <div class="tablewrap"><table class="acts-table">
+    <thead><tr>
+      <th class="pick"><label class="sr-only" for="pick-all">{{ _("All") }}</label><input type="checkbox" id="pick-all" data-all="ids"></th>
+      <th>{{ _("Date") }}</th><th>{{ _("Activity") }}</th><th>{{ _("Sport") }}</th>
+      <th class="num">{{ _("Distance") }}</th><th class="num">{{ _("Ascent") }}</th>
+    </tr></thead>
+    <tbody>
+    {% for a in items %}
+    {% set had = taken.get(a.id|string) %}
+    <tr class="{{ 'act-part' if a.parent }}{{ ' act-multi' if a.multi }}">
+      <td class="pick">{% if a.multi %}{% elif had %}<span class="muted small">✓</span>{% else %}<input type="checkbox" name="ids" value="{{ a.id }}" aria-label="{{ a.name or a.day }}">{% endif %}</td>
+      <td class="nowrap act-day">{{ date_of(a.day) }}</td>
+      <td class="act-name">{% if a.parent %}<span class="muted">↳</span> {% endif %}{{ a.name or "–" }}
+        {% if a.multi %}<span class="muted small">· {{ _("take its parts") }}</span>{% endif %}
+        {% if had %}<a class="badge small" href="/routes/{{ had }}">{{ _("already taken over") }}</a>{% endif %}</td>
+      <td class="act-sport">{{ _("Multisport") if a.multi else (_(sport_by_key[a.type].label) if a.type in sport_by_key else a.type) }}</td>
+      <td class="num act-km">{{ num(a.km, 1) }} km</td>
+      <td class="num act-up">↗ {{ num(a.up) }} m</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="card acts-take">
+    {{ folder_select("", id="acts-folder") }}
+    <div class="actions">
+      <button type="submit" data-needs-selection>{{ _("Take over") }}</button>
+      {% if start %}<a class="btn-ghost" href="{{ newer }}">‹ {{ _("Newer") }}</a>{% endif %}
+      {% if more %}<a class="btn-ghost" href="{{ older }}">{{ _("Older") }} ›</a>{% endif %}
+    </div>
+  </div>
+</form>
+{% endif %}
+<script src="{{ asset('garmin.js') }}"></script>
+{% endblock %}

@@ -14,7 +14,7 @@
   <label for="url">{{ _("Link") }}</label>
   <input id="url" name="url" type="url" required value="{{ link_url or '' }}"
          placeholder="https://www.komoot.com/tour/…">
-  <p class="hint">{{ _("A Komoot tour (the link from its “Share” button), a Garmin Connect course - yours or a public one - or any link to a GPX file.") }}</p>
+  <p class="hint">{{ _("A Komoot tour (the link from its “Share” button), a Garmin Connect course or activity - yours or a public one - or any link to a GPX file.") }}</p>
   {{ folder_select(folder_pre, id="link-folder") }}
   {{ picker([]) }}
   <p class="hint">{{ _("Tick nothing to take the sport from Komoot or Garmin.") }}</p>
@@ -23,6 +23,12 @@
   <div class="actions"><button type="submit">{{ _("Add") }}</button>
     <a class="btn-ghost" href="/">{{ _("Cancel") }}</a></div>
 </form>
+
+<div class="card form-narrow">
+  <h2>{{ _("From your Garmin activities") }}</h2>
+  <p class="muted">{{ _("Pick rides, runs and hikes you did - their way becomes a route.") }}</p>
+  <p class="actions"><a class="btn-ghost" href="/routes/garmin">{{ _("Choose activities…") }}</a></p>
+</div>
 
 <form class="card form-narrow" method="post" action="/routes" enctype="multipart/form-data">
   <h2>{{ _("Upload GPX files") }}</h2>

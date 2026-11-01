@@ -140,6 +140,26 @@ Docs and code comments are English; the UI is English and German (below).
 - Timestamps are UTC with tzinfo (sqlmodel ≥ 0.0.48 rejects naive ones).
 - Jinja macros using `_`/`num` need `import … with context`.
 
+## Garmin activities as routes (`activities.py`, v1.4.0, Michael 2026-11-01)
+- Always the signed-in user's Garmin token: own activities, someone else's
+  only when public (403 -> "does not share"); without a Garmin connection the
+  mode's own "connect it" text. Two ways in: an activity LINK in the link
+  form (sources/garmin.py hands `/activity/<id>` to activities.fetch) and
+  `/routes/garmin` (defined before /routes/{route_id}): the user's
+  activities with GPS (`hasPolyline`), a page of PAGE at a time, filters
+  sport (Garmin parent typeKeys) and dates passed to Garmin; a multisport
+  activity shows its parts below it, each taken alone (the link of a
+  multisport parent says so); taken ones are marked (source
+  "garmin_activity", external_id = activity id -> duplicate check).
+- Only the way: Garmin's GPX export parsed, `clean` drops points closer
+  than 8 m to the last kept (standstill knots, 1-s recording), written anew
+  - NO times, NO heart rate. Name by the suggestions' scheme
+  (`scheme_name`, fallback the activity name without a place list),
+  activity name and date in the description.
+- MyCommons `garmin_api` 1.2.0: `list_activities` (paged, filtered) and
+  `activity_gpx` (download-service/export/gpx/activity) - tried live
+  2026-11-01. Mock: `FakeActivities` in tests/test_activities.py.
+
 ## Share links (`app/sources/`)
 - `sources.fetch(url, uid)` -> `Fetched` (GPX bytes, name, description,
   suggested sport, `source`/`external_id`). The same tour/course a second time

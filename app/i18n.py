@@ -55,10 +55,10 @@ DE: dict[str, str] = {
         "hoch, um die erste Route anzulegen.",
     "Upload GPX files": "GPX-Dateien hochladen",
     # share links (sources/)
-    "A Komoot tour (the link from its “Share” button), a Garmin Connect course - yours or "
-    "a public one - or any link to a GPX file.":
-        "Eine Komoot-Tour (der Link aus ihrem „Teilen“-Knopf), eine Garmin-Connect-Strecke "
-        "– deine oder eine öffentliche – oder ein beliebiger Link auf eine GPX-Datei.",
+    "A Komoot tour (the link from its “Share” button), a Garmin Connect course or activity - "
+    "yours or a public one - or any link to a GPX file.":
+        "Eine Komoot-Tour (der Link aus ihrem „Teilen“-Knopf), eine Garmin-Connect-Strecke oder "
+        "-Aktivität – deine oder eine öffentliche – oder ein beliebiger Link auf eine GPX-Datei.",
     "Add": "Hinzufügen",
     "From a share link": "Aus einem Share-Link",
     "Link": "Link",
@@ -80,8 +80,8 @@ DE: dict[str, str] = {
         "er enthält einen Zugangsschlüssel.",
     "The tour has no track.": "Die Tour hat keinen Track.",
     "This Komoot link does not point to a tour.": "Dieser Komoot-Link zeigt auf keine Tour.",
-    "This Garmin Connect link does not point to a course.":
-        "Dieser Garmin-Connect-Link zeigt auf keine Strecke.",
+    "This Garmin Connect link points neither to a course nor to an activity.":
+        "Dieser Garmin-Connect-Link zeigt weder auf eine Strecke noch auf eine Aktivität.",
     "Garmin does not share this course with you. Only your own and public courses can be "
     "added.":
         "Garmin gibt dir diese Strecke nicht frei. Hinzufügen lassen sich nur deine eigenen "
@@ -89,6 +89,33 @@ DE: dict[str, str] = {
     "This link does not lead to a public website.":
         "Dieser Link führt auf keine öffentliche Website.",
     "Too many redirects.": "Zu viele Weiterleitungen.",
+    # Garmin activities as routes (activities.py, garmin_activities.html, route_new.html)
+    "Activity": "Aktivität",
+    "Choose activities…": "Aktivitäten auswählen …",
+    "Date": "Datum",
+    "From Garmin": "Aus Garmin",
+    "From the Garmin activity “{name}” on {date}.": "Aus der Garmin-Aktivität „{name}“ vom {date}.",
+    "From your Garmin activities": "Aus deinen Garmin-Aktivitäten",
+    "Garmin does not share this activity with you. Only your own and public activities can be "
+    "added.":
+        "Garmin gibt dir diese Aktivität nicht frei. Hinzufügen lassen sich nur deine eigenen "
+        "und öffentliche Aktivitäten.",
+    "Multisport": "Multisport",
+    "Newer": "Neuere",
+    "No activities with GPS here.": "Hier gibt es keine Aktivitäten mit GPS.",
+    "Older": "Ältere",
+    "Pick rides, runs and hikes you did - their way becomes a route.":
+        "Wähle Fahrten, Läufe und Wanderungen, die du gemacht hast – ihr Weg wird eine Route.",
+    "Show": "Anzeigen",
+    "This activity has no GPS track.": "Diese Aktivität hat keine GPS-Spur.",
+    "This is a multisport activity: take its parts one by one under “From Garmin”.":
+        "Das ist eine Multisport-Aktivität: Übernimm ihre Teile einzeln unter „Aus Garmin“.",
+    "Your Garmin activities with GPS. Only the way is taken - no times, no heart rate. A "
+    "multisport activity offers its parts one by one.":
+        "Deine Garmin-Aktivitäten mit GPS. Übernommen wird nur der Weg – keine Zeiten, kein "
+        "Puls. Eine Multisport-Aktivität bietet ihre Teile einzeln an.",
+    "already taken over": "schon übernommen",
+    "take its parts": "Teile einzeln übernehmen",
     # stops on the way (suggest.html, suggest.js, pages.suggest_page)
     "At most {max} stops.": "Höchstens {max} Stationen.",
     "Drag to change the order": "Ziehen, um die Reihenfolge zu ändern",

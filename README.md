@@ -28,6 +28,9 @@ or Komoot.
   cobbles, gravel, unpaved - as bars and a list; tap one and its stretches
   light up on the map. Worked out from OpenStreetMap by your own routing
   service (the same as for the suggestions), so it covers its map regions.
+- **From your Garmin activities:** pick rides, runs and hikes you did
+  (or paste an activity link) - their way becomes a route, without times or
+  heart rate; a multisport activity offers its parts one by one.
 - **Finding:** filters by sport, distance, climbing, terrain, folder and
   "near a place" or "near me", text search, a list and an overview map.
 - **Garmin:** "Send to Garmin…" puts one or several routes into your Garmin

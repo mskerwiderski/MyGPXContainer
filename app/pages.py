@@ -18,6 +18,7 @@ from fastapi.responses import RedirectResponse, Response
 from sqlmodel import select
 
 from . import (
+    activities,
     auth,
     folders,
     garmin_courses,
@@ -195,7 +196,7 @@ async def route_from_link(request: Request, url: str = Form(...), sports: list[s
         return web.render(request, "route_new.html", 422, link_url=url, link_problem=problem,
                           link_values=values, folder_pre=folder, **_ctx(), **_folders(request))
     try:
-        got = await sources.fetch(url, auth.uid(request))
+        got = await sources.fetch(url, auth.uid(request), web.lang(request))
     except sources.SourceError as e:
         return again(e.text, **e.values)
     with get_session() as s:
@@ -238,6 +239,73 @@ async def _share_page(request: Request, ids: list[int], back: str, status_code: 
     return web.render(request, "share.html", status_code, chosen=chosen, people=people,
                       picked=set(to), result=result, problem=problem,
                       back=back, back_path=back.split("?")[0])
+
+
+# ---------- Garmin activities as routes (activities.py) ----------
+
+def _taken(user: dict | None) -> dict[str, int]:
+    """The user's routes from Garmin activities: activity id -> route id."""
+    with get_session() as s:
+        return {r.external_id: r.id for r in routes.own(s, user)
+                if r.source == activities.SOURCE}
+
+
+def _iso_day(value: str) -> str:
+    return value if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value or "") else ""
+
+
+@router.get("/routes/garmin")
+async def garmin_activities_page(request: Request):
+    """The user's Garmin activities with GPS, a page at a time, filtered by
+    sport and dates; several taken over at once (defined before
+    /routes/{route_id})."""
+    q = request.query_params
+    sport = q.get("sport", "") if q.get("sport", "") in activities.FILTERS else ""
+    since, until = _iso_day(q.get("from", "")), _iso_day(q.get("to", ""))
+    start = int(q.get("start", "0")) if q.get("start", "0").isdigit() else 0
+    items, more, problem = [], False, ""
+    try:
+        items, more = await activities.page(auth.uid(request), start, sport, since, until)
+    except sources.SourceError as e:
+        problem = gettext(web.lang(request), e.text, **e.values)
+    keep = [(k, v) for k, v in (("sport", sport), ("from", since), ("to", until)) if v]
+    return web.render(request, "garmin_activities.html", items=items, more=more,
+                      problem=problem, sport=sport, since=since, until=until, start=start,
+                      date_of=lambda d: activities.day_label(d, web.lang(request)),
+                      page=activities.PAGE, filters=activities.FILTERS, taken=_taken(_user(request)),
+                      older="/routes/garmin?" + urlencode(keep + [("start", start + activities.PAGE)]),
+                      newer="/routes/garmin?" + urlencode(
+                          keep + [("start", max(0, start - activities.PAGE))]), **_ctx(),
+                      **_folders(request))
+
+
+@router.post("/routes/garmin")
+async def garmin_activities_take(request: Request, ids: list[str] = Form([]),
+                                 folder: str = Form("")):
+    """The activities picked, each a route of its own (or "already there")."""
+    lang, user = web.lang(request), _user(request)
+    results = []                          # (name, route | None, duplicate | None, error | None)
+    for activity_id in [i for i in dict.fromkeys(ids) if i.isdigit()][:activities.PAGE * 2]:
+        try:
+            got = await activities.fetch(activity_id, auth.uid(request), lang)
+        except sources.SourceError as e:
+            results.append((activity_id, None, None, gettext(lang, e.text, **e.values)))
+            continue
+        with get_session() as s:
+            try:
+                route = routes.create(s, got.data, name=got.name, description=got.description,
+                                      sport_keys=got.sports, user=user, source=got.source,
+                                      source_url=got.source_url, external_id=got.external_id,
+                                      folder_id=folders.valid_id(s, user, folder))
+                results.append((got.name, route, None, None))
+            except routes.Duplicate as d:
+                results.append((got.name, None, d.route, None))
+            except gpx.GpxError as e:
+                results.append((got.name, None, None, str(e)))
+    if len(results) == 1 and results[0][1]:
+        return RedirectResponse(f"/routes/{results[0][1].id}", status_code=303)
+    return web.render(request, "route_upload_result.html", results=results, too_many=False,
+                      **_ctx())
 
 
 @router.get("/routes/share")
@@ -631,12 +699,6 @@ async def suggest_page(request: Request):
                                                   "loops": shown}), **_ctx())
 
 
-def _km_label(km: float, sport: str) -> str:
-    """Runs and walks with one decimal ("21.9k"), rides whole ("85k") - as on
-    the routes renamed on 2026-10-27; a point, in every language."""
-    return f"{km:.1f}" if sports.on_foot([sport]) else f"{km:.0f}"
-
-
 def _town(label: str) -> str:
     """The town of a picked label: "Alte Bahnhofstraße, 82319 Starnberg" -> Starnberg."""
     parts = [p.strip() for p in label.split(",")]
@@ -657,7 +719,7 @@ def _name(loop: suggest.Loop, sport: str, oneway: bool, start_label: str, finish
         names = [n for n in dict.fromkeys(_town(s["label"]) for s in stops) if n]
         if names:
             head += " via " + ", ".join(names)
-    return f"{head} {_km_label(loop.km, sport)}k {loop.ascent_m or 0}hm"
+    return f"{head} {sports.km_label(loop.km, sport)}k {loop.ascent_m or 0}hm"
 
 
 @router.post("/suggest/take")

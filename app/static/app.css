@@ -377,3 +377,28 @@ button.stop-menu-btn, button.stop-remove { flex: none; margin: 0; font-size: 1.1
 .stop-pin span { display: flex; align-items: center; justify-content: center; width: 22px;
   height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
   font: 700 .72rem/1 var(--font); box-shadow: 0 0 0 2px var(--surface); }
+
+/* Garmin activities as routes (/routes/garmin, v1.4.0) */
+.garmin-filter .row { display: flex; flex-wrap: wrap; gap: .5rem .8rem; align-items: center; }
+.garmin-filter select, .garmin-filter input { margin: 0; width: auto; }
+.filter-day { display: inline-flex; align-items: center; gap: .35rem; margin: 0; color: var(--muted);
+  font-size: .9rem; }
+.acts-table th.pick, .acts-table td.pick { width: 2rem; }
+.acts-table td.nowrap { white-space: nowrap; }
+.acts-table tr.act-multi td { font-weight: 600; }
+.acts-table tr.act-part td:nth-child(3) { padding-left: 1.4rem; }
+.acts-table tbody tr:has(input[name=ids]:checked) td { background: var(--accent-weak); }
+.acts-take { margin-top: .8rem; }
+.acts-take .actions { margin-top: .4rem; }
+@media (max-width: 820px) {          /* one card per activity on the phone */
+  .acts-table thead { display: none; }
+  .acts-table tbody tr { display: grid; grid-template-columns: auto 1fr; column-gap: .6rem;
+    padding: .55rem .8rem .55rem 2.6rem; position: relative; border-bottom: 1px solid var(--line); }
+  .acts-table tbody td { display: block; padding: 0; border: 0; text-align: left; }
+  .acts-table td.pick { position: absolute; left: .8rem; top: .7rem; width: auto; }
+  .acts-table td.act-name { grid-column: 1 / -1; order: -1; font-weight: 600; }
+  .acts-table tr.act-part td.act-name { padding-left: 0; }
+  .acts-table td.act-day, .acts-table td.act-sport, .acts-table td.act-km,
+  .acts-table td.act-up { color: var(--muted); font-size: .86rem; display: inline; }
+  .acts-table tbody tr { grid-template-columns: repeat(4, auto); justify-content: start; }
+}

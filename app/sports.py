@@ -71,6 +71,12 @@ HILLY_M_PER_KM, MOUNTAINOUS_M_PER_KM = 7, 15
 FOOT_HILLY_M_PER_KM, FOOT_MOUNTAINOUS_M_PER_KM = 20, 50
 
 
+def km_label(km: float, sport: str) -> str:
+    """Runs and walks with one decimal ("21.9k"), rides whole ("85k") - as on
+    the routes renamed on 2026-10-27; a point, in every language."""
+    return f"{km:.1f}" if on_foot([sport]) else f"{km:.0f}"
+
+
 def on_foot(sport_keys) -> bool:
     """Run and Walk only - a route with any bike sport counts as by bike."""
     keys = [k for k in sport_keys if k in BY_KEY]

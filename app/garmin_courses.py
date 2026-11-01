@@ -33,6 +33,7 @@ from __future__ import annotations
 import asyncio
 import bisect
 import math
+import re
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -89,6 +90,30 @@ class Client:
         """A course (own or public), None if it is gone."""
         async with self._garmin() as g:
             return await g.get_course(course_id)
+
+    async def activities(self, start: int = 0, limit: int = 30, activity_type: str | None = None,
+                         start_date: str | None = None, end_date: str | None = None) -> list[dict]:
+        """The user's activities, newest first, a page at a time."""
+        async with self._garmin() as g:
+            return await g.list_activities(start, limit, activity_type, start_date, end_date)
+
+    async def activity(self, activity_id: int | str) -> dict | None:
+        """An activity (own or public), None if it is gone; GarminError 401/403
+        when it is someone else's and not public."""
+        async with self._garmin() as g:
+            try:
+                return await g.get_activity_detail(int(activity_id))
+            except garmin_api.GarminError as exc:
+                # the block says the status only in its text ("… HTTP 403")
+                if "not found" in str(exc):
+                    return None
+                status = re.search(r"HTTP (\d+)", str(exc))
+                raise GarminError(f"Garmin Connect: {exc}",
+                                  int(status.group(1)) if status else None) from exc
+
+    async def activity_gpx(self, activity_id: int | str) -> bytes:
+        async with self._garmin() as g:
+            return await g.activity_gpx(activity_id)
 
     async def gpx(self, course_id: int | str) -> bytes:
         async with self._garmin() as g:

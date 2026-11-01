@@ -13,7 +13,7 @@ from ..i18n import N_
 @dataclass
 class Fetched:
     data: bytes
-    source: str            # komoot | garmin | url
+    source: str            # komoot | garmin | garmin_activity | url
     source_url: str
     external_id: str = ""
     name: str = ""          # the source's own name, wins over the file's
@@ -39,7 +39,7 @@ def kind(url: str) -> str:
     return "url"
 
 
-async def fetch(url: str, uid: int | None) -> Fetched:
+async def fetch(url: str, uid: int | None, lang: str = "en") -> Fetched:
     from . import garmin, komoot, link
     url = url.strip()
     if urlsplit(url).scheme not in ("http", "https"):
@@ -48,5 +48,5 @@ async def fetch(url: str, uid: int | None) -> Fetched:
     if k == "komoot":
         return await komoot.fetch(url)
     if k == "garmin":
-        return await garmin.fetch(url, uid)
+        return await garmin.fetch(url, uid, lang)
     return await link.fetch(url)

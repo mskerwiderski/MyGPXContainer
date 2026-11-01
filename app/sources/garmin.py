@@ -1,5 +1,6 @@
 """Garmin Connect courses (connect.garmin.com/modern/course/<id>), read with
-the SIGNED-IN user's Garmin token: their own courses and public ones.
+the SIGNED-IN user's Garmin token: their own courses and public ones. Links
+to activities (…/modern/activity/<id>) go to activities.py (v1.4.0).
 GPX from course-service/course/gpx/<id>, name, description and sport from
 course-service/course/<id> (both tried live 2026-10-27), through
 `garmin_courses.Client` (MyCommons block `garmin_api`)."""
@@ -19,10 +20,16 @@ NOT_SHARED = N_("Garmin does not share this course with you. Only your own "
                 "and public courses can be added.")
 
 
-async def fetch(url: str, uid: int | None) -> Fetched:
-    m = re.search(r"/course/(\d+)", urlsplit(url).path)
+async def fetch(url: str, uid: int | None, lang: str = "en") -> Fetched:
+    path = urlsplit(url).path
+    activity = re.search(r"/activity/(\d+)", path)
+    if activity:                              # an activity: only the way (activities.py)
+        from .. import activities
+        return await activities.fetch(activity.group(1), uid, lang, url)
+    m = re.search(r"/course/(\d+)", path)
     if not m:
-        raise SourceError(N_("This Garmin Connect link does not point to a course."))
+        raise SourceError(N_("This Garmin Connect link points neither to a course nor to "
+                             "an activity."))
     course_id = m.group(1)
     try:
         token = await garmin_token(uid)
