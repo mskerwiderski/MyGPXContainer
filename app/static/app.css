@@ -59,7 +59,7 @@
 .garmin-table tbody tr:has(input[name=ids]:checked) td { background: var(--accent-weak); }
 #garmin-panel > form > .actions { margin: .8rem 0; }
 [data-needs-selection]:disabled { opacity: .45; pointer-events: none; }
-.flash.checking::before { content: ""; display: inline-block; width: .85em; height: .85em;
+.checking-inline::before, .flash.checking::before { content: ""; display: inline-block; width: .85em; height: .85em;
   margin-right: .5rem; vertical-align: -.1em; border-radius: 50%; border: 2px solid currentColor;
   border-top-color: transparent; animation: msk-busy .7s linear infinite; }
 @media (max-width: 820px) {        /* My Garmin on the phone: one card per course */
@@ -293,3 +293,38 @@ body.selecting .bulk-bar { display: flex; position: sticky; bottom: 1rem; z-inde
 .loop-c2 { color: var(--ok); }
 .suggest-elev { margin: 0 0 .15rem; }
 .suggest-head .sketch path { stroke: currentColor; }
+
+/* way types and surfaces (waytypes.py, _ways.html): categorical colours of the
+   app's own, both modes - the dataviz reference palette, validated against
+   msk-ui's surfaces (#121823 dark, #ffffff light; adjacent CVD dE >= 8.4,
+   normal >= 19.3). Light 3, 4 and 5 are below 3:1 on white: every colour has
+   its name, km and share written next to it. "Unknown" is grey. */
+:root { --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+  --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; }
+@media (prefers-color-scheme: light) {
+  :root { --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+    --series-5: #e87ba4; --series-6: #008300; --series-7: #6250d6; }
+}
+.series-1 { --c: var(--series-1); } .series-2 { --c: var(--series-2); }
+.series-3 { --c: var(--series-3); } .series-4 { --c: var(--series-4); }
+.series-5 { --c: var(--series-5); } .series-6 { --c: var(--series-6); }
+.series-7 { --c: var(--series-7); } .series-unknown { --c: var(--faint); }
+.ways-card h2 { margin-bottom: .2rem; }
+.ways-kind h3 { font-size: .9rem; margin: .9rem 0 .35rem; color: var(--muted); font-weight: 600; }
+.ways-bar { display: flex; gap: 2px; height: 12px; margin: 0 0 .5rem; }
+.ways-seg { background: var(--c); flex-basis: 0; min-width: 2px; }
+.ways-seg:first-child { border-radius: 4px 0 0 4px; }
+.ways-seg:last-child { border-radius: 0 4px 4px 0; }
+.ways-seg:only-child { border-radius: 4px; }
+.ways-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .1rem 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+button.ways-row { display: flex; align-items: center; gap: .55rem; width: 100%; margin: 0;
+  padding: .35rem .45rem; border: 1px solid transparent; border-radius: var(--r-xs);
+  background: none; box-shadow: none; color: var(--fg); font: inherit; font-weight: 400;
+  text-align: left; cursor: pointer; }
+button.ways-row:hover { background: var(--hover-soft); }
+button.ways-row[aria-pressed="true"] { background: var(--accent-weak); border-color: var(--accent-line); }
+.ways-swatch { flex: none; width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
+.ways-name { flex: 1; }
+.ways-km, .ways-share { color: var(--muted); font-variant-numeric: tabular-nums; }
+.ways-share { min-width: 3.2em; text-align: right; }

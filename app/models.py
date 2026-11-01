@@ -149,3 +149,15 @@ class GarminLink(SQLModel, table=True):
     oauth2: str = ""                     # encrypted JSON, renewed when due
     connected_at: datetime = Field(default_factory=now_utc)
     error: str = ""                      # the last renewal that failed
+
+
+class WayInfo(SQLModel, table=True):
+    """Way types and surfaces of a GPX file (waytypes.py) as GraphHopper
+    matched it, per profile (bike / foot) - or why it could not. Kept per
+    file, not per route: copies and shared routes ask once."""
+    id: int | None = Field(default=None, primary_key=True)
+    gpx_sha: str = Field(index=True)
+    profile: str
+    data: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    error: str = ""
+    made_at: datetime = Field(default_factory=now_utc)

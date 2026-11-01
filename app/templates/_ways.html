@@ -1,0 +1,33 @@
+{# way types and surfaces of a route (waytypes.py): a bar per kind, a row per
+   category - a click on one lights its stretches up on the map (route_map.js) #}
+{% macro ways_panel(route, ways) -%}
+<div class="card ways-card" id="ways" {% if ways.pending %}data-ways-url="/routes/{{ route.id }}?ways=1"{% endif %}>
+  <h2>{{ _("Way types and surfaces") }}</h2>
+  {% if ways.pending %}
+  <p class="muted checking-inline" role="status">{{ _("Working out the way types…") }}</p>
+  {% elif ways.problem %}
+  <p class="muted">{{ _(ways.problem) }}</p>
+  {% else %}
+  <script type="application/json" id="ways-data">{{ ways.json|safe }}</script>
+  {% for kind, title in (("way", _("Way types")), ("surface", _("Surfaces"))) %}
+  <section class="ways-kind">
+    <h3>{{ title }}</h3>
+    <div class="ways-bar" role="img" aria-label="{{ title }}">
+      {%- for e in ways.data[kind] %}<span class="ways-seg {{ ways.slot(kind, e.key) }}" style="flex-grow: {{ e.m }}" title="{{ _(ways.label(e.key)) }} · {{ num(e.m / 1000, 1) }} km · {{ num(e.share * 100) }} %"></span>{% endfor -%}
+    </div>
+    <ul class="ways-list">
+      {% for e in ways.data[kind] %}
+      <li><button type="button" class="ways-row" data-kind="{{ kind }}" data-key="{{ e.key }}" aria-pressed="false">
+        <span class="ways-swatch {{ ways.slot(kind, e.key) }}" aria-hidden="true"></span>
+        <span class="ways-name">{{ _(ways.label(e.key)) }}</span>
+        <span class="ways-km">{{ num(e.m / 1000, 1) }} km</span>
+        <span class="ways-share">{{ num(e.share * 100) }} %</span>
+      </button></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+  <p class="hint small">{{ _("Tap a type to see where it lies on the map. From OpenStreetMap, matched by this instance's own routing service.") }}</p>
+  {% endif %}
+</div>
+{%- endmacro %}

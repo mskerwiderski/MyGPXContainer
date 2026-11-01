@@ -32,6 +32,7 @@ from . import (
     sports,
     store,
     suggest,
+    waytypes,
     web,
 )
 from .db import get_session
@@ -312,6 +313,7 @@ async def route_detail(request: Request, route_id: int):
     with get_session() as s:
         folder = folders.get_own(s, _user(request), route.folder_id) if route.folder_id else None
     return web.render(request, "route.html", route=route,
+                      ways=await _ways(route, request.query_params.get("ways") == "1"),
                       track_json=_display(route.gpx_sha, route.reversed),
                       folder=folder, default_folder=folders.DEFAULT_NAME,
                       garmin_user=user, garmin_row=row,
@@ -320,6 +322,31 @@ async def route_detail(request: Request, route_id: int):
                       course_url=garmin_sync.course_url,
                       on_devices=garmin_sync.on_devices(prefs, row) if row else [],
                       **_ctx())
+
+
+def _way_slot(kind: str, key: str) -> str:
+    """The colour class of a category: its place in the fixed order (app.css)."""
+    keys = [k for k, _, _ in (waytypes.WAY if kind == "way" else waytypes.SURFACE)]
+    return f"series-{keys.index(key) + 1}" if key in keys else "series-unknown"
+
+
+async def _ways(route: Route, ask: bool) -> dict | None:
+    """The way types panel: None = no routing service; pending = the page
+    asks for `?ways=1` after it is shown (GraphHopper takes a second or
+    two the first time); else data or the problem."""
+    if not waytypes.available():
+        return None
+    out = {"slot": _way_slot, "label": waytypes.label, "pending": False, "problem": ""}
+    try:
+        data = await waytypes.for_route(route) if ask else (waytypes.known(route) or {}).get("data")
+    except waytypes.Unavailable as e:
+        return {**out, "problem": e.text}
+    if data is None:
+        hit = waytypes.known(route)
+        if hit and "error" in hit:
+            return {**out, "problem": hit["error"]}
+        return {**out, "pending": True}
+    return {**out, "data": data, "json": web.script_json(data)}
 
 
 @router.get("/routes/{route_id}/edit")

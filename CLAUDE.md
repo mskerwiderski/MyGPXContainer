@@ -112,6 +112,22 @@ Docs and code comments are English; the UI is English and German (below).
   resets the direction. `garmin_sync.route_hash` adds "reversed" only when
   set (older courses keep their hash). The route page swaps its parts
   (`data-swap`), route_map.js draws map and profile again on `mgc:swapped`.
+- **Way types and surfaces (v1.2.0, `waytypes.py`, Michael 2026-11-01, like
+  Komoot)**: our GraphHopper matches the track (`POST /match`, profile bike or
+  foot by the sports, details road_class/surface/track_type - all three are
+  encoded values already; ~1 s for 60 km live). Categories in a FIXED order
+  (`WAY`, `SURFACE`; "unknown" last, grey); a missing surface comes from the
+  track grade. Kept per file + profile in `WayInfo` (copies and shared
+  routes ask once); a turned route reads it backwards (`_for`). GraphHopper
+  4xx (outside the regions) is kept and asked again after a day, 5xx/no
+  answer is not kept. The route page shows it at once when known, else asks
+  `?ways=1` after showing (route_map.js `askWays`); a click on a type lights
+  its stretches up (fractions of the way cut from the map line), the rest
+  goes grey. Colours: `--series-1..7` in app.css, both modes - the dataviz
+  reference palette, validated against msk-ui's surfaces (keep the order;
+  re-validate if it changes). "Gravel" is a sport label already - the
+  surface is "Gravel surface" (German "Schotter"). Mock point
+  `waytypes._match(body, profile)`.
 - **Copy (v1.1.0)**: `routes.copy` - same owner, file, folder, sports and
   direction, name "<name> (copy)" in the user's language, deliberately no
   duplicate check; Garmin rows and "shared by" stay with the original.

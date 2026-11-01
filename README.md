@@ -23,6 +23,11 @@ or Komoot.
   goes; "Reverse direction" turns it round (start and finish, climbs, the
   download and Garmin follow) - the uploaded file stays as it is. "Copy"
   makes a second route from one, e.g. to keep both directions.
+- **Way types and surfaces (optional):** which share of a route is cycleway,
+  minor road, road, main road, track, path, footway - and asphalt, paved,
+  cobbles, gravel, unpaved - as bars and a list; tap one and its stretches
+  light up on the map. Worked out from OpenStreetMap by your own routing
+  service (the same as for the suggestions), so it covers its map regions.
 - **Finding:** filters by sport, distance, climbing, terrain, folder and
   "near a place" or "near me", text search, a list and an overview map.
 - **Garmin:** "Send to Garmin…" puts one or several routes into your Garmin

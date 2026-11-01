@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_sports.html" import badges, tags with context %}
 {% from "_garmin_state.html" import garmin_state, garmin_devices with context %}
+{% from "_ways.html" import ways_panel with context %}
 {% block title %}{{ route.name }} · {% endblock %}
 {% block head %}
 <link rel="stylesheet" href="{{ asset('vendor/leaflet.css') }}">
@@ -35,12 +36,13 @@
   <span>{{ _("Direction") }}:
     <strong>{{ _("reversed") if route.reversed else _("as recorded") }}</strong>{% if route.loop %} · {{ _("clockwise") if sk.clockwise else _("anticlockwise") }}{% endif %}
     <span class="muted small">· {{ _("the arrows on the map show the way") }}</span></span>
-  <form method="post" action="/routes/{{ route.id }}/reverse" data-swap="route-direction,route-sports,route-stats,track,garmin-card">
+  <form method="post" action="/routes/{{ route.id }}/reverse" data-swap="route-direction,route-sports,route-stats,track,ways,garmin-card">
     <button type="submit" class="btn-ghost btn-sm">⇄ {{ _("Reverse direction") }}</button></form>
 </div>
 <div id="map" class="route-map card"
      data-bases='{{ {"map": _("Map"), "satellite": _("Satellite"), "terrain": _("Terrain"), "dark": _("Dark")}|tojson }}'></div>
 <div id="profile" class="route-profile card" data-label-km="km" data-label-m="m"></div>
+{% if ways %}{{ ways_panel(route, ways) }}{% endif %}
 
 <div class="card garmin-card" id="garmin-card" data-refresh="garmin-card"
      {% if garmin_run and garmin_run.running %}data-sync-running{% endif %}>

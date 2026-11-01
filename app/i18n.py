@@ -89,6 +89,36 @@ DE: dict[str, str] = {
     "This link does not lead to a public website.":
         "Dieser Link führt auf keine öffentliche Website.",
     "Too many redirects.": "Zu viele Weiterleitungen.",
+    # way types and surfaces (waytypes.py, _ways.html)
+    "Asphalt": "Asphalt",
+    "Cobbles": "Pflaster",
+    "Cycleway": "Radweg",
+    "Footway": "Fußweg",
+    "Gravel surface": "Schotter",
+    "Main road": "Bundes-/Hauptstraße",
+    "Minor road": "Nebenstraße",
+    "No way types for this route: it lies (partly) outside the map regions of this instance.":
+        "Keine Wegtypen für diese Route: Sie liegt (teilweise) außerhalb der Kartenregionen "
+        "dieser Instanz.",
+    "Path": "Pfad",
+    "Paved": "Befestigt",
+    "Road": "Straße",
+    "Surfaces": "Beläge",
+    "Tap a type to see where it lies on the map. From OpenStreetMap, matched by this "
+    "instance's own routing service.":
+        "Tippe auf einen Typ, um zu sehen, wo er auf der Karte liegt. Aus OpenStreetMap, "
+        "zugeordnet vom eigenen Routing-Dienst dieser Instanz.",
+    "The map is being built. Way types come in a few minutes.":
+        "Die Karte wird gebaut. Die Wegtypen kommen in ein paar Minuten.",
+    "The routing service is not reachable right now.": "Der Routing-Dienst ist gerade nicht erreichbar.",
+    "Track": "Feld-/Waldweg",
+    "Unknown": "Unbekannt",
+    "Unpaved": "Unbefestigt",
+    "Way types": "Wegtypen",
+    "Way types and surfaces": "Wegtypen und Beläge",
+    "Way types need the routing service, which is not set up here.":
+        "Wegtypen brauchen den Routing-Dienst, der hier nicht eingerichtet ist.",
+    "Working out the way types…": "Wegtypen werden ermittelt …",
     # direction and copies (route.html, routes.turn_round, routes.copy)
     "Copy": "Kopieren",
     "Direction": "Richtung",
