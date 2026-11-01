@@ -45,6 +45,8 @@ jobs:
       - name: Smoke-check image
         run: |
           docker run --rm mygpxcontainer:ci python -c "import app.main; print('app imports ok')"
+          # the elevation tiles: rasterio must load inside the image (system libs)
+          docker run --rm mygpxcontainer:ci python -c "import rasterio._io; print('rasterio ok')"
       - name: Build routing image
         run: |
           docker build -t mygpxcontainer-routing:ci routing

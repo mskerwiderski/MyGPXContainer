@@ -14,6 +14,10 @@ FROM python:3.12-slim
 # shared with the routing container (routing/), used once MGC_ROUTING_URL is set.
 ENV PATH="/opt/venv/bin:$PATH" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 \
     MGC_DATA_DIR=/data MGC_ROUTING_DIR=/routing
+# rasterio's wheel (the elevation tiles, app/dem/) needs the system's expat;
+# python:3.12-slim does not have it (found live 2026-11-01: "libexpat.so.1")
+RUN apt-get update && apt-get install -y --no-install-recommends libexpat1 \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=build /opt/venv /opt/venv
 RUN useradd -u 1000 -m app && mkdir -p /data /routing && chown app:app /data /routing
 WORKDIR /app
