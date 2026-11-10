@@ -23,7 +23,7 @@ the leg the point sits. Their key ("L<pattern>:<width>") carries both, so
 Twelve candidates, one per 30° heading, are asked in parallel
 (`algorithm=round_trip`; the seed barely changes a loop, the heading does).
 Each request carries a custom model: the profile wish plus rules for the
-sport. Every candidate gets km and climb as every route does (`gpx.stats`),
+sport, and no ferries. Every candidate gets km and climb as every route does (`gpx.stats`),
 its profile with the sport's limits, and how much of it runs twice, is
 unpaved or on big roads; the score weighs that, and the best three going
 different ways are kept. The rules and weights come from the trial run of
@@ -89,6 +89,9 @@ RULES = {
     "racingbike": [{"if": "road_class == PRIMARY || road_class == TRUNK", "multiply_by": "0.3"}],
     "bike": [{"if": _BIG, "multiply_by": "0.4"}],
 }
+# GraphHopper takes a ferry like any way - a loop crossed the Harkortsee on
+# the excursion boat "MS Friedrich Harkort" (live 2026-11-10)
+NO_FERRY = [{"if": "road_environment == FERRY", "multiply_by": "0"}]
 UNPAVED = {"gravel", "compacted", "fine_gravel", "dirt", "ground", "unpaved", "grass", "sand"}
 ORDER = {"flat": 0, "hilly": 1, "mountainous": 2}
 PARALLEL = 6                 # requests at once - twelve strained a fresh server
@@ -102,6 +105,11 @@ class Unavailable(Exception):
     def __init__(self, text: str, **values):
         super().__init__(text)
         self.text, self.values = text, values
+
+
+def priority(engine: str, wish: str | None = None) -> list[dict]:
+    """The custom model's priority: the profile wish, the sport's rules, no ferries."""
+    return (WISH[wish] if wish else []) + RULES.get(engine, []) + NO_FERRY
 
 
 def limit(sport: str) -> int:
@@ -155,7 +163,7 @@ def body(sport: str, start: tuple[float, float], km: float, wish: str, heading: 
             "round_trip.distance": round(km * 1000), "round_trip.seed": 0, "headings": [heading],
             "ch.disable": True, "elevation": True, "points_encoded": False,
             "instructions": False, "details": ["surface", "road_class"],
-            "custom_model": {"priority": WISH[wish] + RULES.get(engine, [])}}
+            "custom_model": {"priority": priority(engine, wish)}}
 
 
 def _shares(path: dict, points: list, name: str) -> dict[str, float]:
@@ -372,7 +380,7 @@ def stops_loop_body(sport: str, start, stops, wish: str, key: str) -> dict:
             "points": [[p[1], p[0]] for p in _ring(start, stops, width, pattern)],
             "ch.disable": True, "elevation": True, "points_encoded": False,
             "instructions": False, "details": ["surface", "road_class"],
-            "custom_model": {"priority": WISH[wish] + RULES.get(engine, [])}}
+            "custom_model": {"priority": priority(engine, wish)}}
 
 
 def stops_key_ok(key: str) -> bool:
@@ -443,7 +451,7 @@ def oneway_body(sport: str, start: tuple[float, float], finish: tuple[float, flo
     engine = ENGINE[sport]
     b = {"profile": engine, "ch.disable": True, "elevation": True, "points_encoded": False,
          "instructions": False, "details": ["surface", "road_class"],
-         "custom_model": {"priority": WISH[wish] + RULES.get(engine, [])}}
+         "custom_model": {"priority": priority(engine, wish)}}
     if group == "a":
         b.update({"points": [[start[1], start[0]], [finish[1], finish[0]]],
                   "algorithm": "alternative_route", "alternative_route.max_paths": 3,
@@ -476,7 +484,7 @@ def stops_oneway_body(sport: str, start, finish, stops, wish: str, key: str) -> 
     return {"profile": engine, "points": [[p[1], p[0]] for p in ring], "ch.disable": True,
             "elevation": True, "points_encoded": False, "instructions": False,
             "details": ["surface", "road_class"],
-            "custom_model": {"priority": WISH[wish] + RULES.get(engine, [])}}
+            "custom_model": {"priority": priority(engine, wish)}}
 
 
 STOPS_ONEWAY_KEYS = ("s",) + tuple(f"w{i}" for i in range(len(VIA_SHIFTS)))

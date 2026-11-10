@@ -58,7 +58,7 @@ def test_a_leg_over_roads(client, gh):
     engine = suggest.ENGINE["trail_running"]
     assert body["profile"] == engine and body["points"][1] == [11.02, 48.01]   # lon, lat
     assert "algorithm" not in body
-    assert body["custom_model"]["priority"] == suggest.RULES.get(engine, [])
+    assert body["custom_model"]["priority"] == suggest.RULES.get(engine, []) + suggest.NO_FERRY
 
 
 def test_no_way_and_no_service(client, gh):

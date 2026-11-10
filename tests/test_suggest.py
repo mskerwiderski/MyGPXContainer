@@ -102,13 +102,24 @@ def run(coro):
     return asyncio.run(coro)
 
 
+def test_no_request_takes_a_ferry():
+    ferry = suggest.NO_FERRY[0]
+    assert ferry in suggest.body("running", START, 10, "flat", 0)["custom_model"]["priority"]
+    for b in (suggest.stops_loop_body("running", START, [(48.2, 11.4)], "flat", "Lm:0.6"),
+              suggest.oneway_body("cycling", START, (48.3, 11.6), "flat", "a"),
+              suggest.stops_oneway_body("cycling", START, (48.3, 11.6), [(48.2, 11.4)],
+                                        "flat", "s")):
+        assert b["custom_model"]["priority"][-1] == ferry
+
+
 def test_request_carries_profile_wish_and_sport_rules():
     b = suggest.body("gravel_cycling", START, 50, "hilly", 120)
     assert b["profile"] == "gravel" and b["algorithm"] == "round_trip"
     assert b["points"] == [[11.35, 48.17]] and b["headings"] == [120]
     assert b["round_trip.distance"] == 50_000 and b["ch.disable"] is True
     rules = b["custom_model"]["priority"]
-    assert rules[0] == suggest.WISH["hilly"][0] and rules[1:] == suggest.RULES["gravel"]
+    assert rules[0] == suggest.WISH["hilly"][0] and rules[1:-1] == suggest.RULES["gravel"]
+    assert rules[-1] == {"if": "road_environment == FERRY", "multiply_by": "0"}
     assert suggest.body("hiking", START, 15, "flat", 0)["profile"] == "hike"
     assert suggest.body("road_biking", START, 80, "flat", 0)["profile"] == "racingbike"
 

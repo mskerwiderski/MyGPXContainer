@@ -97,7 +97,7 @@ async def draw_leg(request: Request, route_id: int):
     engine = engine_of(route)
     body = {"profile": engine, "points": [[p[1], p[0]] for p in asked], "ch.disable": True,
             "points_encoded": False, "instructions": False,
-            "custom_model": {"priority": suggest.RULES.get(engine, [])}}
+            "custom_model": {"priority": suggest.priority(engine)}}
     try:
         status, answer = await suggest._route(body)
         paths = suggest._paths(status, answer)

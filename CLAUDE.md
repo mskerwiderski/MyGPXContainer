@@ -247,7 +247,10 @@ Docs and code comments are English; the UI is English and German (below).
   hardly), custom model per request = `WISH[profile]` + `RULES[engine]`;
   score = distance, profile, run-twice share, big roads, unpaved (gravel +,
   road bike -); `pick` keeps three ≥ 60° apart with < 40 % shared ground.
-  Weights from the trial run 2026-10-30 (docs/plan.md). "Take over"
+  Weights from the trial run 2026-10-30 (docs/plan.md). Every custom model
+  (suggestions and the way editor) comes from `suggest.priority`, which ends
+  with `NO_FERRY`: GraphHopper takes a ferry like any way - a running loop
+  crossed the Harkortsee on the excursion boat (live 2026-11-10). "Take over"
   (`POST /suggest/take`) computes the loop AGAIN from the parameters - no
   state, source `generated`. Mock point `suggest._route(body)`, `FakeGH` in
   `tests/test_suggest.py`.
